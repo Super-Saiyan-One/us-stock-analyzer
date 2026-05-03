@@ -31,19 +31,14 @@ def batch_screen(req: BatchRequest):
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"yfinance download failed: {e}")
 
-    single = len(symbols) == 1
     results = []
 
     for sym in symbols:
         try:
-            if single:
-                close = hist["Close"]
-                vol = hist["Volume"]
-            else:
-                if sym not in hist["Close"].columns:
-                    continue
-                close = hist["Close"][sym]
-                vol = hist["Volume"][sym]
+            if sym not in hist["Close"].columns:
+                continue
+            close = hist["Close"][sym]
+            vol = hist["Volume"][sym]
 
             close = close.dropna()
             vol = vol.dropna()
