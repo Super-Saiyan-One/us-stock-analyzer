@@ -74,7 +74,10 @@ export function BacktestTable({ results }: Props) {
                     ) : null}
                   </td>
                   <td className="px-3 py-2.5 font-semibold">{formatSignalId(r.signalId)}</td>
-                  <td className="px-3 py-2.5 tabular-nums">{r.sampleCount}</td>
+                  <td className="px-3 py-2.5 tabular-nums">
+                    <span>{r.validSamples20D ?? 0}</span>
+                    <span className="text-[10px] text-muted-foreground ml-0.5">/{r.sampleCount}</span>
+                  </td>
                   <td className="px-3 py-2.5">
                     <div className="flex gap-3 tabular-nums">
                       <WinRateCell value={r.winRate1D} />

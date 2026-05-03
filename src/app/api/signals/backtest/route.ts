@@ -19,9 +19,9 @@ function median(arr: number[]): number {
 
 function computeStats(
   returns: (number | null)[]
-): { avg: number; med: number; winRate: number; hitRate: number } {
+): { avg: number; med: number; winRate: number; hitRate: number; validCount: number } {
   const valid = returns.filter((r): r is number => r !== null);
-  if (valid.length === 0) return { avg: 0, med: 0, winRate: 0, hitRate: 0 };
+  if (valid.length === 0) return { avg: 0, med: 0, winRate: 0, hitRate: 0, validCount: 0 };
 
   const avg = valid.reduce((s, v) => s + v, 0) / valid.length;
   const med = median(valid);
@@ -34,6 +34,7 @@ function computeStats(
     med: Math.round(med * 100) / 100,
     winRate: Math.round(winRate * 10) / 10,
     hitRate: Math.round(hitRate * 10) / 10,
+    validCount: valid.length,
   };
 }
 
@@ -92,6 +93,9 @@ export async function GET() {
       if (validCount < 2) continue;
       byRegime[regime] = {
         sampleCount: data.r1.length,
+        validSamples1D: rs1.validCount,
+        validSamples5D: rs5.validCount,
+        validSamples20D: rs20.validCount,
         hitRate1D: rs1.hitRate, hitRate5D: rs5.hitRate, hitRate20D: rs20.hitRate,
         avgReturn1D: rs1.avg, avgReturn5D: rs5.avg, avgReturn20D: rs20.avg,
         medianReturn1D: rs1.med, medianReturn5D: rs5.med, medianReturn20D: rs20.med,
@@ -103,6 +107,9 @@ export async function GET() {
     results.push({
       signalId,
       sampleCount: observations.length,
+      validSamples1D: stats1.validCount,
+      validSamples5D: stats5.validCount,
+      validSamples20D: stats20.validCount,
       hitRate1D: stats1.hitRate, hitRate5D: stats5.hitRate, hitRate20D: stats20.hitRate,
       avgReturn1D: stats1.avg, avgReturn5D: stats5.avg, avgReturn20D: stats20.avg,
       medianReturn1D: stats1.med, medianReturn5D: stats5.med, medianReturn20D: stats20.med,

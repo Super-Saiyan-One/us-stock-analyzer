@@ -1,6 +1,6 @@
 import type { DataMeta } from "./data-meta";
 
-export type UniverseId = "sp500" | "nasdaq100" | "watchlist" | "custom";
+export type UniverseId = "sp500" | "watchlist" | "custom";
 
 export type ScreenerCategory =
   | "breakout"
@@ -85,6 +85,9 @@ export interface SignalObservation {
 export interface BacktestResult {
   signalId: string;
   sampleCount: number;
+  validSamples1D: number;
+  validSamples5D: number;
+  validSamples20D: number;
   hitRate1D: number;
   hitRate5D: number;
   hitRate20D: number;

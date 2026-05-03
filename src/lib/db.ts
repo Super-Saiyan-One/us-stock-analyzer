@@ -60,6 +60,8 @@ function getDb(): Database.Database {
         regime TEXT,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_sigobs_dedup
+        ON signal_observations(symbol, signal_id, observed_at);
       CREATE INDEX IF NOT EXISTS idx_sigobs_symbol ON signal_observations(symbol, observed_at DESC);
       CREATE INDEX IF NOT EXISTS idx_sigobs_signal ON signal_observations(signal_id, observed_at DESC);
 
@@ -249,7 +251,7 @@ export interface SignalObsRow {
 export function insertSignalObservation(obs: SignalObsRow) {
   const d = getDb();
   d.prepare(
-    `INSERT INTO signal_observations (symbol, signal_id, category, score, price_at_signal, observed_at, triggers, regime)
+    `INSERT OR IGNORE INTO signal_observations (symbol, signal_id, category, score, price_at_signal, observed_at, triggers, regime)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     obs.symbol,

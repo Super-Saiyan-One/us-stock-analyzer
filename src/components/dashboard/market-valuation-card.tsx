@@ -1,7 +1,6 @@
 "use client";
 
 import { useShillerLatest, useForwardPE } from "@/hooks/use-market-data";
-import { useStockFinancials } from "@/hooks/use-stock-financials";
 import { formatRatio } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -22,7 +21,6 @@ function MetricItem({ label, value, subtitle, tip }: { label: string; value: str
 
 export function MarketValuationCard() {
   const { data, isLoading } = useShillerLatest();
-  const { data: sp500Financials } = useStockFinancials("SPY");
   const { data: forwardPEData } = useForwardPE();
   const tt = useT();
   const t = (key: string) => tt(`val.${key}`);
@@ -50,7 +48,7 @@ export function MarketValuationCard() {
   const levelColor = cape < 15 ? "text-success" : cape < 20 ? "text-foreground" : cape < 30 ? "text-warning" : "text-destructive";
   const levelBg = cape < 15 ? "bg-success/10" : cape < 20 ? "bg-muted" : cape < 30 ? "bg-warning/10" : "bg-destructive/10";
 
-  const trailingPE = sp500Financials?.trailingPE ?? null;
+  const trailingPE = forwardPEData?.trailingPE ?? null;
   const forwardPE = forwardPEData?.forwardPE ?? null;
   const earningsYield = trailingPE && trailingPE > 0
     ? (1 / trailingPE) * 100 : null;

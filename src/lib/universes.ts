@@ -11,4 +11,4 @@ export const SP500_TOP100 = [
   "SHW", "MCO", "FDX", "APD", "GD", "USB", "PNC", "TGT", "ADP", "MMM",
 ];
 
-export const UNIVERSE_IDS = ["sp500", "nasdaq100", "watchlist", "custom"] as const;
+export const UNIVERSE_IDS = ["sp500", "watchlist", "custom"] as const;

@@ -46,13 +46,25 @@ interface FundamentalResult {
   shortRatio: number | null;
 }
 
-async function fetchBatchPrices(symbols: string[]): Promise<PriceResult[]> {
+interface BatchPriceResult {
+  results: PriceResult[];
+  totalRequested: number;
+  chunksSucceeded: number;
+  chunksFailed: number;
+  errors: string[];
+}
+
+async function fetchBatchPrices(symbols: string[]): Promise<BatchPriceResult> {
   const chunks: string[][] = [];
   for (let i = 0; i < symbols.length; i += 50) {
     chunks.push(symbols.slice(i, i + 50));
   }
 
   const results: PriceResult[] = [];
+  let chunksSucceeded = 0;
+  let chunksFailed = 0;
+  const errors: string[] = [];
+
   for (const chunk of chunks) {
     try {
       const res = await fetch(`${PYTHON_API_URL}/screener/batch/screen`, {
@@ -63,12 +75,17 @@ async function fetchBatchPrices(symbols: string[]): Promise<PriceResult[]> {
       if (res.ok) {
         const data = await res.json();
         results.push(...(data.results || []));
+        chunksSucceeded++;
+      } else {
+        chunksFailed++;
+        errors.push(`batch/screen returned ${res.status}: ${res.statusText}`);
       }
-    } catch {
-      // continue with other chunks
+    } catch (e) {
+      chunksFailed++;
+      errors.push(`batch/screen failed: ${e instanceof Error ? e.message : "unknown"}`);
     }
   }
-  return results;
+  return { results, totalRequested: symbols.length, chunksSucceeded, chunksFailed, errors };
 }
 
 async function fetchBatchFundamentals(
@@ -136,10 +153,19 @@ function recordSignalObservations(stocks: ScreenerStock[], regime?: string) {
   }
 }
 
+const SUPPORTED_UNIVERSES = new Set(["sp500", "custom"]);
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const universe = searchParams.get("universe") || "sp500";
   const customSymbols = searchParams.get("symbols")?.split(",").filter(Boolean);
+
+  if (!SUPPORTED_UNIVERSES.has(universe)) {
+    return NextResponse.json(
+      { error: `Unsupported universe: "${universe}". Supported: sp500, custom (with symbols param).` },
+      { status: 400 }
+    );
+  }
 
   let symbols: string[];
   if (universe === "custom" && customSymbols?.length) {
@@ -152,14 +178,27 @@ export async function GET(request: Request) {
   const cached = cacheGet<ScreenerResponse>(cacheKey);
   if (cached) return NextResponse.json(cached);
 
-  const [prices, fundamentals] = await Promise.all([
+  const [priceResult, fundamentals] = await Promise.all([
     fetchBatchPrices(symbols),
     fetchBatchFundamentals(symbols),
   ]);
 
-  persistPriceSnapshots(prices);
+  if (priceResult.results.length === 0) {
+    return NextResponse.json(
+      {
+        error: "Failed to fetch price data from upstream. Python API may be unavailable.",
+        sourceStatus: "unavailable",
+        details: priceResult.errors,
+      },
+      { status: 502 }
+    );
+  }
 
-  const rawList: RawScreenData[] = prices.map((p) => {
+  persistPriceSnapshots(priceResult.results);
+
+  const isDegraded = priceResult.chunksFailed > 0;
+
+  const rawList: RawScreenData[] = priceResult.results.map((p) => {
     const f = fundamentals.get(p.symbol);
     return {
       symbol: p.symbol,
@@ -203,7 +242,10 @@ export async function GET(request: Request) {
       asOf: new Date().toISOString().split("T")[0],
       fetchedAt: new Date().toISOString(),
       frequency: "on-demand",
-      confidence: "medium",
+      confidence: isDegraded ? "low" : "medium",
+      note: isDegraded
+        ? `Partial data: ${priceResult.chunksSucceeded}/${priceResult.chunksSucceeded + priceResult.chunksFailed} chunks succeeded`
+        : undefined,
     },
   };
 
