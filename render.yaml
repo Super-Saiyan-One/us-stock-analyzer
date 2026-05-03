@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: us-stock-analyzer-api
+    runtime: docker
+    dockerfilePath: ./python-api/Dockerfile
+    dockerContext: ./python-api
+    plan: free
+    envVars:
+      - key: FRONTEND_URL
+        sync: false

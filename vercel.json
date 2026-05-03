@@ -1,0 +1,9 @@
+{
+  "framework": "nextjs",
+  "installCommand": "npm install",
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  }
+}

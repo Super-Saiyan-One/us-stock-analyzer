@@ -1,0 +1,18 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PYTHON_API_URL=http://python-api:8000
+    depends_on:
+      - python-api
+
+  python-api:
+    build:
+      context: ./python-api
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
