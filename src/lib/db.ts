@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import path from "path";
 import { existsSync, mkdirSync } from "fs";
 import type { BtcStrategyConfig } from "@/types/btc-strategy";
+import type { UsIndexStrategyConfig } from "@/types/us-index-strategy";
 
 const DB_PATH = process.env.VERCEL
   ? "/tmp/cache.db"
@@ -76,6 +77,13 @@ function getDb(): Database.Database {
       CREATE INDEX IF NOT EXISTS idx_prices_symbol ON price_snapshots(symbol, date DESC);
 
       CREATE TABLE IF NOT EXISTS btc_strategy_config (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        params TEXT NOT NULL,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS us_index_strategy_config (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         params TEXT NOT NULL,
@@ -440,4 +448,31 @@ export function saveBtcStrategyConfig(config: BtcStrategyConfig): void {
     `INSERT OR REPLACE INTO btc_strategy_config (id, name, params, updated_at)
      VALUES (?, ?, ?, datetime('now'))`
   ).run(BTC_STRATEGY_CONFIG_ID, name, JSON.stringify(params));
+}
+
+// --- US Index Strategy Config ---
+
+const US_INDEX_STRATEGY_CONFIG_ID = "default";
+
+export function getUsIndexStrategyConfig(): UsIndexStrategyConfig | null {
+  const d = getDb();
+  const row = d
+    .prepare(`SELECT name, params FROM us_index_strategy_config WHERE id = ?`)
+    .get(US_INDEX_STRATEGY_CONFIG_ID) as
+    | { name: string; params: string }
+    | undefined;
+  if (!row) return null;
+  return {
+    name: row.name,
+    ...(JSON.parse(row.params) as Omit<UsIndexStrategyConfig, "name">),
+  };
+}
+
+export function saveUsIndexStrategyConfig(config: UsIndexStrategyConfig): void {
+  const d = getDb();
+  const { name, ...params } = config;
+  d.prepare(
+    `INSERT OR REPLACE INTO us_index_strategy_config (id, name, params, updated_at)
+     VALUES (?, ?, ?, datetime('now'))`
+  ).run(US_INDEX_STRATEGY_CONFIG_ID, name, JSON.stringify(params));
 }

@@ -55,6 +55,9 @@ export const CACHE_TTL = {
   BTC_DAILY: 6 * 60 * 60 * 1000,
   BTC_CBBI: 12 * 60 * 60 * 1000,
   BTC_STRATEGY: 30 * 60 * 1000,
+  US_INDEX_DAILY: 6 * 60 * 60 * 1000,
+  US_INDEX_VIX: 6 * 60 * 60 * 1000,
+  US_INDEX_STRATEGY: 30 * 60 * 1000,
 } as const;
 
 export const STOCKMARKET_PE_URL = "https://www.stockmarketperatio.com";
@@ -79,4 +82,5 @@ export const STALE_TIME = {
   SCREENER: 5 * 60 * 1000,
   SIGNAL_LAB: 30 * 60 * 1000,
   BTC_STRATEGY: 30 * 60 * 1000,
+  US_INDEX_STRATEGY: 30 * 60 * 1000,
 } as const;

@@ -4,7 +4,6 @@ import {
   getBtcStrategyTemplate,
   normalizeConfig,
 } from "@/lib/btc-strategy-engine";
-import { saveBtcStrategyConfig } from "@/lib/db";
 import type { BtcStrategyConfig } from "@/types/btc-strategy";
 
 export async function PUT(request: Request) {
@@ -16,8 +15,16 @@ export async function PUT(request: Request) {
       ...template.defaultConfig,
       ...body,
     });
-    saveBtcStrategyConfig(config);
-    return NextResponse.json(config);
+    try {
+      const { saveBtcStrategyConfig } = await import("@/lib/db");
+      saveBtcStrategyConfig(config);
+      return NextResponse.json(config);
+    } catch (error) {
+      console.error("BTC strategy config persistence failed; returning volatile config", error);
+      return NextResponse.json(config, {
+        headers: { "X-Config-Persistence": "volatile" },
+      });
+    }
   } catch {
     return NextResponse.json(
       { error: "Failed to save BTC strategy config" },

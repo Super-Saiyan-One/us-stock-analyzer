@@ -10,7 +10,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:btc": "tsx --test tests/btc-strategy-engine.test.ts"
+    "test:btc": "tsx --test tests/btc-strategy-engine.test.ts",
+    "test:fallbacks": "tsx --test tests/strategy-fallbacks.test.ts",
+    "test:us-index": "tsx --test tests/us-index-strategy-engine.test.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.100.8",

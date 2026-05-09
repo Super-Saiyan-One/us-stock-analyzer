@@ -27,7 +27,7 @@
 
 A full-stack US stock market analysis tool: market valuation dashboard, individual stock analysis, options chain data, and macro indicators. Built for a single user (personal tool), deployed locally or via Docker.
 
-**Live pages**: Dashboard (market regime radar, valuation, Fed liquidity, rates, volatility, macro) · Screener (opportunity scanning with scoring) · Signal Lab (backtest signal performance) · BTC Strategy (BTC zone signals, DCA buy/sell degree, zone timeline, editable parameters, optional hard stop) · Stock search + detail (quote, chart, key metrics, options, signals) · Watchlist
+**Live pages**: Dashboard (market regime radar, valuation, Fed liquidity, rates, volatility, macro) · Screener (opportunity scanning with scoring) · Signal Lab (backtest signal performance) · BTC Strategy (BTC zone signals, DCA buy/sell degree, zone timeline, editable parameters, optional hard stop) · US Index Zones (SPY/QQQ panic-bottom and pullback-bottom DCA zones plus heat trim zones; defaults from AutoQuantStock parameter search, with auxiliary QQQ PE/VIX/Fear gates) · Stock search + detail (quote, chart, key metrics, options, signals) · Watchlist
 
 ## Tech Stack
 
@@ -70,6 +70,7 @@ src/
 │   ├── (app)/                     # Layout group with nav
 │   │   ├── dashboard/page.tsx     # Market dashboard
 │   │   ├── btc-strategy/page.tsx  # BTC zone signal dashboard
+│   │   ├── us-index-strategy/page.tsx # SPY/QQQ bottom/heat zone dashboard + auxiliary gates
 │   │   ├── screener/page.tsx      # Opportunity screener
 │   │   ├── signal-lab/page.tsx    # Signal backtest lab
 │   │   ├── stock/page.tsx         # Search
@@ -79,7 +80,7 @@ src/
 │   ├── api/                       # BFF layer
 │   │   ├── fred/                  # FRED macro (SQLite-backed)
 │   │   ├── crypto/btc/strategy/   # BTC strategy evaluation + config persistence
-│   │   ├── market/{indices,regime,shiller,sp500,fear-greed,forward-pe,sector-pe}/
+│   │   ├── market/{indices,regime,shiller,sp500,fear-greed,forward-pe,sector-pe,us-index-strategy}/
 │   │   ├── screener/             # Batch stock screening
 │   │   ├── signals/{backtest,observations}/ # Signal verification
 │   │   └── stock/[symbol]/{quote,chart,financials,options,options-summary}/
@@ -102,6 +103,8 @@ src/
 │   ├── db.ts                      # SQLite (time_series + cache_meta + signal_observations + price_snapshots)
 │   ├── btc-market-data.ts         # BTC daily candles + CBBI fetch/cache
 │   ├── btc-strategy-engine.ts     # BTC zone signal + reference trade evaluator
+│   ├── us-index-market-data.ts    # SPY/QQQ daily candles + VIX/Fear/valuation data + current QQQ PE gate
+│   ├── us-index-strategy-engine.ts # US index panic/pullback bottom + heat zone scorer, research-optimized defaults + auxiliary gates
 │   ├── constants.ts               # ALL constants (URLs, CACHE_TTL, STALE_TIME)
 │   ├── data-source-registry.ts    # DataMeta builder for provenance tracking
 │   ├── feature-engine.ts          # Percentile-based feature computation
@@ -112,9 +115,11 @@ src/
 │   └── utils.ts                   # cn() for Tailwind class merging
 ├── providers/                     # QueryClientProvider
 ├── stores/                        # Zustand (settings, watchlist)
+├── data/fallbacks/                # Static BTC/US index API snapshots for Vercel fallback
 └── types/                         # TypeScript interfaces
     ├── data-meta.ts               # DataMeta, RegimeDimension types
     ├── btc-strategy.ts            # BTC strategy config/evaluation types, optional hard stop
+    ├── us-index-strategy.ts       # US index zone config/evaluation types
     ├── market.ts                  # ShillerLatest, IndexData, ForwardPEData, etc.
     ├── options.ts                 # OptionContract, OptionsChain
     ├── screener.ts                # ScreenerStock, BacktestResult, SignalObservation
@@ -177,6 +182,8 @@ npm run dev              # Next.js dev (port 3000)
 npm run build            # Production build
 npm run lint             # ESLint
 npm run test:btc         # BTC strategy engine focused test
+npm run test:fallbacks   # Static strategy fallback snapshot test
+npm run test:us-index    # US index zone strategy engine focused test
 npx tsc --noEmit         # Type check
 
 # Python API
@@ -200,6 +207,7 @@ docker-compose up
 - [ ] **Python API no timeouts** — yfinance calls can hang indefinitely
 - [ ] **Docker healthchecks missing** — no automatic restart on failure
 - [ ] **No structured logging** — production debugging is difficult
+- [ ] **Vercel fallback snapshots are manual** — `src/data/fallbacks/*.json` keeps BTC/US index pages visible if external APIs or SQLite fail, but snapshots must be refreshed manually after strategy/data changes
 
 ### Low Priority
 - [ ] **Yahoo Finance fetch duplication** — `sp500`, `indices`, `fear-greed` routes share similar fetch+parse logic
@@ -211,12 +219,14 @@ docker-compose up
 |--------|------|------|---------|
 | Yahoo Finance Chart API | Price, volume, indices | None | Real-time |
 | Yahoo Finance Search API | Stock search | None | — |
+| Yahoo Finance Chart API (^VIX, ^VIX3M, ^SKEW) | US index zone fear/risk proxies | None | Daily |
+| Yahoo Finance quoteSummary (QQQ) | Current QQQ trailing PE auxiliary gate; current-only, not historical scoring | None (best effort) | 6h |
 | Binance Spot Klines API | BTCUSDT daily candles for BTC strategy | None | Daily |
 | Colin Talks Crypto CBBI | CBBI cycle confidence index | None | Daily |
 | FRED | Macro indicators (rates, VIX, CPI, M2...) | API Key | Daily/Weekly/Monthly |
-| Shiller/CAPE | Historical PE data | None | Daily |
-| CNN Fear & Greed | Market sentiment score | None | 30min |
-| stockmarketperatio.com | S&P 500 Forward PE + Trailing PE | None (scrape) | Monthly |
+| Shiller/CAPE | Historical PE data and US index zone valuation input | None | Daily |
+| CNN Fear & Greed | Market sentiment score; history from ~2021 for US index zones | None | 30min |
+| stockmarketperatio.com | Current S&P 500 Forward PE gate + historical Trailing PE | None (scrape) | Monthly |
 | SEC EDGAR | Company filings (10-K, 8-K, etc.) | User-Agent header | 30min |
 | FINRA | Short interest data | None | 12h |
 | yfinance (Python) | Fundamentals, options chains, earnings | None | 5min |
@@ -244,6 +254,18 @@ CREATE TABLE cache_meta (
 -- BTC strategy configuration
 -- params JSON stores template parameters, including hardStopEnabled (default false)
 CREATE TABLE btc_strategy_config (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  params TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- US index zone strategy configuration
+-- params JSON stores weights, panic/pullback bottom thresholds, heat threshold, indicator periods,
+-- forward PE gate thresholds, and auxiliary gate thresholds (QQQ PE, VIX, Fear & Greed).
+-- Exact legacy 60/60 and old research defaults are upgraded
+-- to the latest AutoQuantStock research default at read time.
+CREATE TABLE us_index_strategy_config (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   params TEXT NOT NULL,
