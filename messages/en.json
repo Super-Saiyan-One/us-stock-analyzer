@@ -5,6 +5,7 @@
     "stocks": "Stocks",
     "watchlist": "Watchlist",
     "signalLab": "Signal Lab",
+    "btcStrategy": "BTC Strategy",
     "appName": "StockAnalyzer"
   },
   "common": {
@@ -195,6 +196,169 @@
       "low": "Low",
       "medium": "Medium",
       "high": "High"
+    }
+  },
+  "btcStrategy": {
+    "title": "BTC Strategy",
+    "source": "Source:",
+    "latestPrice": "Latest Price",
+    "cbbi": "CBBI",
+    "ahr999": "AHR999",
+    "currentZone": "Current Zone",
+    "buyDegree": "DCA Buy Degree",
+    "sellDegree": "DCA Sell Degree",
+    "totalReturn": "Web Daily Reference Return",
+    "buyHoldReturn": "Buy & Hold Baseline",
+    "excessReturn": "Vs Baseline",
+    "chartTitle": "BTC Price & Zone Signals",
+    "price": "Price",
+    "buy": "Buy",
+    "sell": "Sell",
+    "zoneSignal": "Zone Signal",
+    "zoneTimeline": "Zone Timeline",
+    "zoneTimelineHint": "Darker color means stronger degree",
+    "status": "Current Status",
+    "action": "Action",
+    "tradesCount": "Trades",
+    "winRate": "Win Rate",
+    "avgReturn": "Avg Return",
+    "parameters": "Strategy Parameters",
+    "save": "Save",
+    "saving": "Saving",
+    "saved": "Saved",
+    "applyParameters": "Apply Parameters",
+    "applying": "Applying",
+    "applied": "Applied, zones updated",
+    "applyHint": "After changing parameters, apply them to recalculate the current zone and chart.",
+    "template": "Template",
+    "strategyName": "Strategy Name",
+    "momentumDays": "Momentum Days",
+    "exitMomentumDays": "Exit Momentum Days",
+    "cbbiEntryMax": "Max Entry CBBI",
+    "entryAhrMax": "Max DCA AHR999",
+    "exitMomentumThreshold": "Exit Momentum Threshold",
+    "exitCbbi": "Exit CBBI",
+    "exitAhr": "Exit AHR999",
+    "stoploss": "Stoploss %",
+    "stoplossPct": "Hard Stop %",
+    "hardStopEnabled": "Enable Hard Stop",
+    "trendFastDays": "Fast EMA Days",
+    "trendSlowDays": "Slow EMA Days",
+    "strategyExplanationTitle": "Strategy Explanation",
+    "noTemplateParameters": "This template has no manual parameters.",
+    "historicalReference": "Historical Reference",
+    "referenceReturnNote": "Returns use Web daily data as a reference calculation for comparison with Buy & Hold. They are not the AutoQuant/FreqTrade experiment returns or a precise trading backtest.",
+    "trades": "Recent Reference Trades",
+    "entryDate": "Entry",
+    "exitDate": "Exit",
+    "entryPrice": "Entry Price",
+    "exitPrice": "Exit Price",
+    "return": "Return",
+    "reason": "Reason",
+    "noTrades": "No completed trades yet",
+    "loadFailed": "Failed to load BTC strategy data.",
+    "positionLabel": "Reference Position",
+    "noZoneReason": "No zone reason is active",
+    "explanationLabel": {
+      "logic": "Logic: ",
+      "entry": "Entry: ",
+      "exit": "Exit: ",
+      "bestFor": "Best for: ",
+      "note": "Note: "
+    },
+    "parameterHelp": {
+      "momentumDays": "How many daily periods to compare CBBI/AHR999 momentum against.",
+      "exitMomentumDays": "How many daily periods to use when judging fading CBBI momentum.",
+      "cbbiEntryMax": "CBBI must be below this value before the strategy can enter a DCA buy zone.",
+      "entryAhrMax": "AHR999 must be below this value before CbbiAhr999Daily can enter a DCA buy zone.",
+      "exitMomentumThreshold": "Momentum strategies enter a DCA sell zone when CBBI momentum falls below this value.",
+      "exitCbbi": "CBBI above this value is treated as cycle heat and enters a DCA sell zone.",
+      "exitAhr": "AHR999 above this value is treated as valuation heat and enters a DCA sell zone.",
+      "hardStopEnabled": "Off by default for spot zone reading. When enabled it affects only reference trade returns, not zone colors.",
+      "stoplossPct": "When hard stop is enabled, reference trades exit at this drawdown, such as -25 for a 25% drop.",
+      "trendFastDays": "Fast trend EMA period. Values with existing EMA series, like 50, 100, and 200, are most accurate.",
+      "trendSlowDays": "Slow trend period, usually used to judge whether the major trend is broken."
+    },
+    "strategyExplanation": {
+      "cbbi_momentum_opt": {
+        "logic": "Waits for CBBI to recover from low levels instead of waiting for fear alone, with EMA100 above EMA200.",
+        "entry": "DCA buy zone when CBBI is below the cap, 3-day momentum turns positive, and fast trend is above slow trend.",
+        "exit": "DCA sell zone when CBBI momentum fades, CBBI overheats, or the fast trend falls below the slow trend.",
+        "bestFor": "Trend repair phases, especially after a larger BTC bottom starts to resolve.",
+        "note": "The AutoQuant version used a 1h experiment setup and stoploss. This Web version is a daily spot zone model."
+      },
+      "cbbi_momentum": {
+        "logic": "Uses low CBBI momentum recovery as the main signal, focusing more on direction than a static cheap threshold.",
+        "entry": "CBBI below the cap with positive momentum and a passing trend filter.",
+        "exit": "DCA sell zone when CBBI momentum fades, CBBI overheats, or trend breaks.",
+        "bestFor": "Users who want a simpler BTC cycle momentum view.",
+        "note": "It is more raw than the Opt version and may miss fast reversals more easily."
+      },
+      "cbbi_ahr999_daily": {
+        "logic": "Combines CBBI cycle heat with AHR999 valuation to find daily low-valuation recovery zones.",
+        "entry": "DCA buy zone when both CBBI and AHR999 are low and both momentum values turn positive.",
+        "exit": "DCA sell zone when CBBI or AHR999 moves above its exit threshold.",
+        "bestFor": "Spot users who want both cycle temperature and valuation temperature.",
+        "note": "This is a daily indicator mix and should not be interpreted as hourly trading behavior."
+      },
+      "smart_hold": {
+        "logic": "Bull-market hold template that reduces exposure only when the long trend breaks.",
+        "entry": "Stays active when volume is valid and the trend is not broken.",
+        "exit": "DCA sell zone when the fast EMA is below the slow EMA and price is below SMA200.",
+        "bestFor": "Users who want fewer switches and care mainly about major trend holding.",
+        "note": "This is more of a major-trend position template than a bottom-fishing strategy."
+      },
+      "bear01": {
+        "logic": "Uses SMA200 as a simple bull/bear divider to protect exposure below the long average.",
+        "entry": "Allows holding when price is above SMA200.",
+        "exit": "DCA sell zone when price falls below SMA200.",
+        "bestFor": "Users who want a simple long-term trend filter.",
+        "note": "Funding and stablecoin filters from AutoQuant are not wired into the Web version yet."
+      },
+      "buy_and_hold": {
+        "logic": "Buy once and hold, serving as the baseline for strategy return comparison.",
+        "entry": "Enters when valid volume exists.",
+        "exit": "No strategy exit by default.",
+        "bestFor": "Checking whether a strategy actually improves on long-term holding.",
+        "note": "If hard stop is enabled, it is no longer a pure Buy & Hold baseline."
+      }
+    },
+    "zone": {
+      "dca_buy": "DCA Buy Zone",
+      "hold": "Hold Zone",
+      "dca_sell": "DCA Sell Zone"
+    },
+    "reasonTag": {
+      "cbbi_low": "CBBI low",
+      "ahr_low": "AHR999 low",
+      "momentum_rising": "Momentum rising",
+      "trend_ok": "Trend passed",
+      "cbbi_hot": "CBBI hot",
+      "ahr_hot": "AHR999 hot",
+      "momentum_faded": "Momentum faded",
+      "trend_broken": "Trend broken"
+    },
+    "position": {
+      "long": "Long",
+      "cash": "Cash"
+    },
+    "actionState": {
+      "buy": "Buy",
+      "sell": "Sell",
+      "hold": "Hold"
+    },
+    "exitReason": {
+      "cbbi_overheated": "CBBI overheated",
+      "ahr_overheated": "AHR999 overheated",
+      "momentum_faded": "Momentum faded",
+      "trend_broken": "Trend broken",
+      "stoploss": "Stoploss"
+    },
+    "range": {
+      "1y": "1Y",
+      "2y": "2Y",
+      "4y": "4Y",
+      "all": "All"
     }
   },
   "tip": {

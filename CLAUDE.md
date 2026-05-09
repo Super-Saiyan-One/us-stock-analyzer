@@ -14,6 +14,7 @@
 - **图表**: Recharts (dashboard 图表) + lightweight-charts (K线图)
 - **国际化**: next-intl + Zustand locale 切换，支持 en/zh
 - **图标**: lucide-react
+- **测试**: node:test + tsx，用于纯 TypeScript 引擎测试
 
 ### 后端 (Python API)
 - **框架**: FastAPI + uvicorn
@@ -21,13 +22,15 @@
 - 运行在 `localhost:8000`，由前端 Next.js API 路由代理
 
 ### 持久化
-- **SQLite** (better-sqlite3): 时间序列数据持久化 + 分位数计算
+- **SQLite** (better-sqlite3): 时间序列数据持久化 + 分位数计算 + BTC 策略配置
 - 数据库文件: `data/cache.db` (git-ignored)
 - 用途: FRED 宏观数据持久化、Regime Radar 历史分位数
 
 ### 外部 API (直接在 Next.js API Routes 中调用)
 - Yahoo Finance Chart API — 行情、K线、指数 (无需认证)
 - Yahoo Finance Search API — 股票搜索 (无需认证)
+- Binance Spot Klines API — BTCUSDT 日线 (无需认证)
+- Colin Talks Crypto CBBI — BTC 周期信心指标 (无需认证)
 - FRED (圣路易斯联储) — 宏观指标 (国债利率、VIX、CPI、M2 等，需 API Key)
 - Shiller CAPE Data — 席勒市盈率历史数据 (无需认证)
 
@@ -38,12 +41,14 @@ src/
 ├── app/
 │   ├── (app)/                  # 带侧边栏/底部导航的布局组
 │   │   ├── dashboard/          # 市场总览仪表盘 (Regime Radar + 多版块)
+│   │   ├── btc-strategy/       # BTC 区间信号看板 (区间时间带 + 可选硬止损)
 │   │   ├── screener/           # 机会扫描器 (Phase 1)
 │   │   ├── signal-lab/         # 信号验证实验室 (Phase 2)
 │   │   ├── stock/              # 个股搜索 + 详情 + 期权
 │   │   └── watchlist/          # 自选股
 │   ├── api/                    # Next.js API 路由 (BFF 层)
 │   │   ├── fred/               # FRED 宏观数据代理 (持久化到 SQLite)
+│   │   ├── crypto/btc/strategy/ # BTC 区间信号 + 参数配置
 │   │   ├── market/
 │   │   │   ├── indices/        # 多指数行情 (S&P, NASDAQ, VIX, DJI)
 │   │   │   ├── regime/         # 市场状态雷达 (聚合 6 维度信号)
@@ -90,6 +95,8 @@ src/
 │   ├── api.ts                  # API 工具 (apiFetch, validateSymbol)
 │   ├── cache.ts                # 服务端内存缓存 (TTL Map, 热数据)
 │   ├── db.ts                   # SQLite 持久化层 (时间序列 + 分位数 + 信号观察)
+│   ├── btc-market-data.ts      # BTC 日线 + CBBI 获取/缓存
+│   ├── btc-strategy-engine.ts  # BTC 区间信号 + 参考交易评估器 (硬止损默认关闭)
 │   ├── constants.ts            # 所有常量 (API URL、缓存 TTL、staleTime)
 │   ├── formatters.ts           # 数字/货币/百分比格式化
 │   ├── screener-engine.ts      # 扫描器评分引擎 (分类 + 综合评分)
@@ -99,6 +106,7 @@ src/
 ├── stores/                     # Zustand stores (settings, watchlist)
 └── types/
     ├── data-meta.ts            # 数据元信息、Regime 类型
+    ├── btc-strategy.ts         # BTC 策略配置、指标、交易记录类型
     ├── market.ts               # 市场数据类型
     ├── options.ts              # 期权类型
     ├── screener.ts             # 扫描器类型 (ScreenerStock, BacktestResult)
@@ -144,6 +152,7 @@ python-api/
 ### SQLite 持久化层 (lib/db.ts)
 - 表 `time_series`: (series_id, date, value, source, fetched_at) — FRED 时间序列
 - 表 `cache_meta`: (key, data, expires_at) — 通用 JSON 持久化缓存
+- 表 `btc_strategy_config`: (id, name, params, updated_at) — BTC 策略参数配置，`params` JSON 包含模板参数和默认关闭的 `hardStopEnabled`
 - 关键函数:
   - `upsertTimeSeries()` — 批量写入时间序列
   - `getTimeSeries()` — 查询时间序列 (支持 limit + startDate)
@@ -223,6 +232,9 @@ python-api/
 | FRED Monthly | 24h | 30min | — | — |
 | Screener | 5min | 5min | — | — |
 | Signal Lab | 30min | 30min | — | — |
+| BTC Daily Candles | 6h | 30min | — | — |
+| BTC CBBI | 12h | 30min | — | — |
+| BTC Strategy | 30min | 30min | — | — |
 
 ### 类型系统
 - 共享数据类型定义在 `src/types/` 目录下
@@ -269,6 +281,7 @@ python-api/
 npm run dev          # 启动 Next.js 开发服务器 (port 3000)
 npm run build        # 生产构建
 npm run lint         # ESLint 检查
+npm run test:btc     # BTC 策略引擎测试
 npx tsc --noEmit     # TypeScript 类型检查
 
 # Python API

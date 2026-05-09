@@ -10,6 +10,11 @@ export const YAHOO_CHART_API =
 export const YAHOO_SEARCH_API =
   "https://query2.finance.yahoo.com/v1/finance/search";
 
+export const BINANCE_KLINES_API = "https://api.binance.com/api/v3/klines";
+
+export const CBBI_LATEST_API =
+  "https://colintalkscrypto.com/cbbi/data/latest.json";
+
 export const SEC_COMPANY_TICKERS_API =
   "https://www.sec.gov/files/company_tickers.json";
 
@@ -47,6 +52,9 @@ export const CACHE_TTL = {
   SHORT_INTEREST: 12 * 60 * 60 * 1000,
   SCREENER: 5 * 60 * 1000,
   SIGNAL_LAB: 30 * 60 * 1000,
+  BTC_DAILY: 6 * 60 * 60 * 1000,
+  BTC_CBBI: 12 * 60 * 60 * 1000,
+  BTC_STRATEGY: 30 * 60 * 1000,
 } as const;
 
 export const STOCKMARKET_PE_URL = "https://www.stockmarketperatio.com";
@@ -70,4 +78,5 @@ export const STALE_TIME = {
   SHORT_INTEREST: 12 * 60 * 60 * 1000,
   SCREENER: 5 * 60 * 1000,
   SIGNAL_LAB: 30 * 60 * 1000,
+  BTC_STRATEGY: 30 * 60 * 1000,
 } as const;
