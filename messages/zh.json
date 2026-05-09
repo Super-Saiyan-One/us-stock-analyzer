@@ -397,6 +397,8 @@
     "technicalWeight": "技术权重",
     "repairWeight": "趋势修复权重",
     "bottomThreshold": "抄底阈值",
+    "panicBottomThreshold": "恐慌抄底阈值",
+    "pullbackBottomThreshold": "回撤抄底阈值",
     "heatThreshold": "过热阈值",
     "conflictGap": "冲突分差",
     "forwardPeLow": "前瞻 PE 低估线",
@@ -411,6 +413,8 @@
       "technicalWeight": "RSI、跌幅、距离长期均线对区间的影响权重。",
       "repairWeight": "趋势修复或趋势转弱对区间的影响权重。",
       "bottomThreshold": "抄底分数达到该值后才允许进入定投区。",
+      "panicBottomThreshold": "极端恐慌环境进入定投区所需的恐慌抄底分。",
+      "pullbackBottomThreshold": "高估或牛市环境中，明显回撤进入定投区所需的回撤抄底分。",
       "heatThreshold": "过热分数达到该值后才允许进入减仓区。",
       "conflictGap": "抄底和过热同时出现时，需要至少相差这么多分才行动。",
       "forwardPeLow": "当前前瞻 PE 低于该值时，增加低估实时闸门。",
@@ -422,7 +426,7 @@
     },
     "strategyExplanation": {
       "logic": "模型分别计算抄底风险和过热风险，不做 SPY/QQQ 轮动；默认参数由 AutoQuantStock 参数搜索报告选出。",
-      "bottom": "抄底区通常需要恐慌、历史估值不贵、技术超跌或趋势修复。",
+      "bottom": "抄底区拆成恐慌抄底和回撤抄底。高估会降低回撤抄底强度，但不会长期阻断明显回撤时的定投区。",
       "heat": "减仓区通常需要贪婪、历史估值偏贵、技术超买或趋势转弱。",
       "forwardPE": "前瞻 PE 只是实时闸门，所以今天的前瞻 PE 不会改写历史评分。"
     },
@@ -433,6 +437,8 @@
     },
     "reasonTag": {
       "panic": "市场恐慌",
+      "panic_bottom": "恐慌抄底",
+      "pullback_bottom": "回撤抄底",
       "cheap_valuation": "估值不贵",
       "oversold": "技术超跌",
       "trend_repair": "趋势修复",

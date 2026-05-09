@@ -27,7 +27,7 @@
 
 A full-stack US stock market analysis tool: market valuation dashboard, individual stock analysis, options chain data, and macro indicators. Built for a single user (personal tool), deployed locally or via Docker.
 
-**Live pages**: Dashboard (market regime radar, valuation, Fed liquidity, rates, volatility, macro) · Screener (opportunity scanning with scoring) · Signal Lab (backtest signal performance) · BTC Strategy (BTC zone signals, DCA buy/sell degree, zone timeline, editable parameters, optional hard stop) · US Index Zones (SPY/QQQ bottom DCA and heat trim zones; defaults from AutoQuantStock parameter search) · Stock search + detail (quote, chart, key metrics, options, signals) · Watchlist
+**Live pages**: Dashboard (market regime radar, valuation, Fed liquidity, rates, volatility, macro) · Screener (opportunity scanning with scoring) · Signal Lab (backtest signal performance) · BTC Strategy (BTC zone signals, DCA buy/sell degree, zone timeline, editable parameters, optional hard stop) · US Index Zones (SPY/QQQ panic-bottom and pullback-bottom DCA zones plus heat trim zones; defaults from AutoQuantStock parameter search) · Stock search + detail (quote, chart, key metrics, options, signals) · Watchlist
 
 ## Tech Stack
 
@@ -104,7 +104,7 @@ src/
 │   ├── btc-market-data.ts         # BTC daily candles + CBBI fetch/cache
 │   ├── btc-strategy-engine.ts     # BTC zone signal + reference trade evaluator
 │   ├── us-index-market-data.ts    # SPY/QQQ daily candles + VIX/Fear/valuation data
-│   ├── us-index-strategy-engine.ts # US index bottom/heat zone scorer, research-optimized defaults
+│   ├── us-index-strategy-engine.ts # US index panic/pullback bottom + heat zone scorer, research-optimized defaults
 │   ├── constants.ts               # ALL constants (URLs, CACHE_TTL, STALE_TIME)
 │   ├── data-source-registry.ts    # DataMeta builder for provenance tracking
 │   ├── feature-engine.ts          # Percentile-based feature computation
@@ -260,8 +260,9 @@ CREATE TABLE btc_strategy_config (
 );
 
 -- US index zone strategy configuration
--- params JSON stores weights, thresholds, indicator periods, and forward PE gate thresholds
--- exact legacy 60/60 default configs are upgraded to the AutoQuantStock research default at read time
+-- params JSON stores weights, panic/pullback bottom thresholds, heat threshold, indicator periods,
+-- and forward PE gate thresholds. Exact legacy 60/60 and old research defaults are upgraded
+-- to the latest AutoQuantStock research default at read time.
 CREATE TABLE us_index_strategy_config (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,

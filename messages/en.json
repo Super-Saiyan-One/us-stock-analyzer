@@ -397,6 +397,8 @@
     "technicalWeight": "Technical Weight",
     "repairWeight": "Trend Repair Weight",
     "bottomThreshold": "Bottom Threshold",
+    "panicBottomThreshold": "Panic Bottom Threshold",
+    "pullbackBottomThreshold": "Pullback Bottom Threshold",
     "heatThreshold": "Heat Threshold",
     "conflictGap": "Conflict Gap",
     "forwardPeLow": "Forward PE Low",
@@ -411,6 +413,8 @@
       "technicalWeight": "How much RSI, drawdown, and distance from long SMA affect zones.",
       "repairWeight": "How much trend repair or trend weakening affects zones.",
       "bottomThreshold": "Bottom score needed before a DCA buy zone can appear.",
+      "panicBottomThreshold": "Panic bottom score needed for extreme fear DCA zones.",
+      "pullbackBottomThreshold": "Pullback bottom score needed for DCA zones during expensive or bull-market drawdowns.",
       "heatThreshold": "Heat score needed before a DCA sell zone can appear.",
       "conflictGap": "Minimum score gap needed when bottom and heat signals conflict.",
       "forwardPeLow": "Current forward PE below this value adds a low-valuation realtime gate.",
@@ -422,7 +426,7 @@
     },
     "strategyExplanation": {
       "logic": "The model scores bottom risk and heat risk separately. It does not rotate between SPY and QQQ; defaults are selected by the AutoQuantStock parameter search report.",
-      "bottom": "Bottom zones need panic, cheaper historical valuation, oversold price action, or trend repair.",
+      "bottom": "Bottom zones are split into panic bottoms and pullback bottoms. High valuation can reduce pullback strength, but it does not block clear drawdown DCA zones.",
       "heat": "Heat zones need greed, expensive historical valuation, overbought price action, or trend weakening.",
       "forwardPE": "Forward PE is a realtime gate only, so today's forward PE never rewrites historical scores."
     },
@@ -433,6 +437,8 @@
     },
     "reasonTag": {
       "panic": "Panic",
+      "panic_bottom": "Panic bottom",
+      "pullback_bottom": "Pullback bottom",
       "cheap_valuation": "Cheap valuation",
       "oversold": "Oversold",
       "trend_repair": "Trend repair",

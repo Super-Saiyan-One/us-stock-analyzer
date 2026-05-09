@@ -15,13 +15,15 @@ import type {
 
 export const DEFAULT_US_INDEX_STRATEGY_CONFIG: UsIndexStrategyConfig = {
   name: "USIndexZoneResearchOpt",
-  fearWeight: 0.45,
+  fearWeight: 0.3,
   valuationWeight: 0.15,
-  technicalWeight: 0.3,
-  repairWeight: 0.1,
-  bottomThreshold: 46,
-  heatThreshold: 56,
-  conflictGap: 15,
+  technicalWeight: 0.4,
+  repairWeight: 0.15,
+  bottomThreshold: 50,
+  panicBottomThreshold: 50,
+  pullbackBottomThreshold: 34,
+  heatThreshold: 52,
+  conflictGap: 5,
   rsiPeriod: 14,
   smaLongDays: 200,
   emaFastDays: 20,
@@ -37,7 +39,28 @@ const LEGACY_US_INDEX_BALANCED_DEFAULT: UsIndexStrategyConfig = {
   technicalWeight: 0.35,
   repairWeight: 0.1,
   bottomThreshold: 60,
+  panicBottomThreshold: 60,
+  pullbackBottomThreshold: 60,
   heatThreshold: 60,
+  conflictGap: 15,
+  rsiPeriod: 14,
+  smaLongDays: 200,
+  emaFastDays: 20,
+  emaSlowDays: 50,
+  forwardPeLow: 18,
+  forwardPeHigh: 24,
+};
+
+const LEGACY_US_INDEX_RESEARCH_DEFAULT: UsIndexStrategyConfig = {
+  name: "USIndexZoneResearchOpt",
+  fearWeight: 0.45,
+  valuationWeight: 0.15,
+  technicalWeight: 0.3,
+  repairWeight: 0.1,
+  bottomThreshold: 46,
+  panicBottomThreshold: 50,
+  pullbackBottomThreshold: 34,
+  heatThreshold: 56,
   conflictGap: 15,
   rsiPeriod: 14,
   smaLongDays: 200,
@@ -85,6 +108,8 @@ export function normalizeUsIndexStrategyConfig(
     technicalWeight: rawWeights[2] / sum,
     repairWeight: rawWeights[3] / sum,
     bottomThreshold: clamp(merged.bottomThreshold, 0, 100),
+    panicBottomThreshold: clamp(merged.panicBottomThreshold, 0, 100),
+    pullbackBottomThreshold: clamp(merged.pullbackBottomThreshold, 0, 100),
     heatThreshold: clamp(merged.heatThreshold, 0, 100),
     conflictGap: clamp(merged.conflictGap, 0, 100),
     rsiPeriod: clampInt(merged.rsiPeriod, 2, 60),
@@ -98,7 +123,7 @@ export function normalizeUsIndexStrategyConfig(
 }
 
 export function resolveUsIndexStrategyConfig(
-  savedConfig: UsIndexStrategyConfig | null | undefined
+  savedConfig: Partial<UsIndexStrategyConfig> | null | undefined
 ): UsIndexStrategyConfig {
   if (!savedConfig) return DEFAULT_US_INDEX_STRATEGY_CONFIG;
   const normalized = normalizeUsIndexStrategyConfig(savedConfig);
@@ -138,20 +163,8 @@ export function evaluateUsIndexStrategy(
 
 function isLegacyDefaultConfig(config: UsIndexStrategyConfig): boolean {
   return (
-    config.name === LEGACY_US_INDEX_BALANCED_DEFAULT.name &&
-    numberEquals(config.fearWeight, LEGACY_US_INDEX_BALANCED_DEFAULT.fearWeight) &&
-    numberEquals(config.valuationWeight, LEGACY_US_INDEX_BALANCED_DEFAULT.valuationWeight) &&
-    numberEquals(config.technicalWeight, LEGACY_US_INDEX_BALANCED_DEFAULT.technicalWeight) &&
-    numberEquals(config.repairWeight, LEGACY_US_INDEX_BALANCED_DEFAULT.repairWeight) &&
-    numberEquals(config.bottomThreshold, LEGACY_US_INDEX_BALANCED_DEFAULT.bottomThreshold) &&
-    numberEquals(config.heatThreshold, LEGACY_US_INDEX_BALANCED_DEFAULT.heatThreshold) &&
-    numberEquals(config.conflictGap, LEGACY_US_INDEX_BALANCED_DEFAULT.conflictGap) &&
-    config.rsiPeriod === LEGACY_US_INDEX_BALANCED_DEFAULT.rsiPeriod &&
-    config.smaLongDays === LEGACY_US_INDEX_BALANCED_DEFAULT.smaLongDays &&
-    config.emaFastDays === LEGACY_US_INDEX_BALANCED_DEFAULT.emaFastDays &&
-    config.emaSlowDays === LEGACY_US_INDEX_BALANCED_DEFAULT.emaSlowDays &&
-    numberEquals(config.forwardPeLow, LEGACY_US_INDEX_BALANCED_DEFAULT.forwardPeLow) &&
-    numberEquals(config.forwardPeHigh, LEGACY_US_INDEX_BALANCED_DEFAULT.forwardPeHigh)
+    matchesConfig(config, LEGACY_US_INDEX_BALANCED_DEFAULT) ||
+    matchesConfig(config, LEGACY_US_INDEX_RESEARCH_DEFAULT)
   );
 }
 
@@ -189,6 +202,8 @@ function buildIndicators(
   const smaLong = smaSeries(closes, config.smaLongDays);
   const emaFast = emaSeries(closes, config.emaFastDays);
   const emaSlow = emaSeries(closes, config.emaSlowDays);
+  const drawdown63d = drawdownFromHighSeries(closes, 63);
+  const drawdown126d = drawdownFromHighSeries(closes, 126);
 
   const vixValues = macroAligned(sorted, macroByDate, "vix");
   const skewValues = macroAligned(sorted, macroByDate, "skew");
@@ -214,6 +229,8 @@ function buildIndicators(
       return20d,
       return60d,
       distanceFromSmaLongPct,
+      drawdown63dPct: drawdown63d[index],
+      drawdown126dPct: drawdown126d[index],
       vixPercentile: vixPercentiles[index],
       skewPercentile: skewPercentiles[index],
       capePercentile: capePercentiles[index],
@@ -236,6 +253,10 @@ function buildIndicators(
       return20d,
       return60d,
       distanceFromSmaLongPct,
+      drawdown63dPct: drawdown63d[index],
+      drawdown126dPct: drawdown126d[index],
+      panicBottomScore: scores.panicBottomScore,
+      pullbackBottomScore: scores.pullbackBottomScore,
       bottomScore: scores.bottomScore,
       heatScore: scores.heatScore,
     };
@@ -246,8 +267,11 @@ function buildZonePoint(
   point: UsIndexStrategyIndicatorPoint,
   config: UsIndexStrategyConfig
 ): UsIndexStrategyZonePoint {
-  const action = resolveUsIndexZoneAction(point.bottomScore, point.heatScore, config);
-  const score = Math.max(point.bottomScore, point.heatScore);
+  const action = resolveUsIndexZoneActionForPoint(point, config);
+  const score =
+    action === "dca_buy"
+      ? Math.max(point.panicBottomScore, point.pullbackBottomScore, point.bottomScore)
+      : point.heatScore;
   const degree = action === "hold" ? 0 : toDegree(score);
   return {
     date: point.date,
@@ -270,6 +294,8 @@ function computeScores({
   return20d,
   return60d,
   distanceFromSmaLongPct,
+  drawdown63dPct,
+  drawdown126dPct,
   vixPercentile,
   skewPercentile,
   capePercentile,
@@ -284,6 +310,8 @@ function computeScores({
   return20d: number | null;
   return60d: number | null;
   distanceFromSmaLongPct: number | null;
+  drawdown63dPct: number | null;
+  drawdown126dPct: number | null;
   vixPercentile: number | null;
   skewPercentile: number | null;
   capePercentile: number | null;
@@ -329,16 +357,36 @@ function computeScores({
     emaFast != null && emaSlow != null && emaFast < emaSlow ? 100 : 0,
     return20d != null && return20d < 0 ? 100 : 0,
   ]);
+  const panicBottomScore = clamp(
+    0.55 * fearScore + 0.3 * oversoldScore + 0.15 * cheapScore,
+    0,
+    100
+  );
+  const pullbackDrawdownScore = averageScore([
+    drawdown63dPct == null ? null : -drawdown63dPct * 10,
+    drawdown126dPct == null ? null : -drawdown126dPct * 8,
+  ]);
+  const pullbackRawScore =
+    0.35 * pullbackDrawdownScore +
+    0.2 * averageScore([return20d == null ? null : -return20d * 5]) +
+    0.2 * averageScore([rsi == null ? null : (50 - rsi) * 3]) +
+    0.15 * averageScore([macro.fearGreed == null ? vixPercentile : 100 - macro.fearGreed]) +
+    0.1 * averageScore([return60d == null ? null : -return60d * 3]);
+  const valuationDrag = Math.max(0, expensiveScore - 65) * 0.08;
+  const pullbackBottomScore = clamp(pullbackRawScore - valuationDrag, 0, 100);
+  const weightedBottomScore = clamp(
+    config.fearWeight * fearScore +
+      config.valuationWeight * cheapScore +
+      config.technicalWeight * oversoldScore +
+      config.repairWeight * repairScore,
+    0,
+    100
+  );
 
   return {
-    bottomScore: clamp(
-      config.fearWeight * fearScore +
-        config.valuationWeight * cheapScore +
-        config.technicalWeight * oversoldScore +
-        config.repairWeight * repairScore,
-      0,
-      100
-    ),
+    panicBottomScore,
+    pullbackBottomScore,
+    bottomScore: Math.max(weightedBottomScore, panicBottomScore, pullbackBottomScore),
     heatScore: clamp(
       config.fearWeight * greedScore +
         config.valuationWeight * expensiveScore +
@@ -350,6 +398,24 @@ function computeScores({
   };
 }
 
+function resolveUsIndexZoneActionForPoint(
+  point: UsIndexStrategyIndicatorPoint,
+  config: UsIndexStrategyConfig
+): UsIndexZoneAction {
+  const panicActive =
+    point.panicBottomScore >= config.panicBottomThreshold ||
+    (point.bottomScore >= config.bottomThreshold && point.panicBottomScore >= point.pullbackBottomScore);
+  const pullbackActive = point.pullbackBottomScore >= config.pullbackBottomThreshold;
+  if (panicActive || pullbackActive) return "dca_buy";
+  if (
+    point.heatScore >= config.heatThreshold &&
+    point.heatScore - point.bottomScore >= config.conflictGap
+  ) {
+    return "dca_sell";
+  }
+  return "hold";
+}
+
 function getReasonTags(
   point: UsIndexStrategyIndicatorPoint,
   action: UsIndexZoneAction,
@@ -358,9 +424,21 @@ function getReasonTags(
   const tags: UsIndexReasonTag[] = [];
   const forwardSignal = buildForwardPEGate(config)?.signal;
   if (action === "dca_buy") {
-    if (point.vix != null && point.vix >= 25) tags.push("panic");
+    if (point.panicBottomScore >= config.panicBottomThreshold || (point.vix != null && point.vix >= 25)) {
+      tags.push("panic_bottom");
+    }
+    if (
+      point.pullbackBottomScore >= config.pullbackBottomThreshold ||
+      ((point.return20d != null && point.return20d < -5) &&
+        (point.cape != null && point.cape >= 35))
+    ) {
+      tags.push("pullback_bottom");
+    }
     if ((point.cape != null && point.cape < 28) || (point.trailingPE != null && point.trailingPE < 22)) {
       tags.push("cheap_valuation");
+    }
+    if ((point.cape != null && point.cape > 35) || (point.trailingPE != null && point.trailingPE > 27)) {
+      tags.push("expensive_valuation");
     }
     if ((point.rsi != null && point.rsi < 45) || (point.return20d != null && point.return20d < -5)) {
       tags.push("oversold");
@@ -503,6 +581,15 @@ function emaSeries(values: number[], period: number): (number | null)[] {
   return result;
 }
 
+function drawdownFromHighSeries(values: number[], lookback: number): (number | null)[] {
+  return values.map((value, index) => {
+    if (index < lookback - 1 || value <= 0) return null;
+    const high = Math.max(...values.slice(index - lookback + 1, index + 1));
+    if (high <= 0) return null;
+    return (value / high - 1) * 100;
+  });
+}
+
 function percentileSeries(values: (number | null)[], lookback = 756): (number | null)[] {
   return values.map((value, index) => {
     if (value == null || !Number.isFinite(value)) return null;
@@ -540,6 +627,25 @@ function finiteOr(value: number | undefined, fallback: number): number {
 
 function numberEquals(a: number, b: number): boolean {
   return Math.abs(a - b) < 0.000001;
+}
+
+function matchesConfig(config: UsIndexStrategyConfig, expected: UsIndexStrategyConfig): boolean {
+  return (
+    config.name === expected.name &&
+    numberEquals(config.fearWeight, expected.fearWeight) &&
+    numberEquals(config.valuationWeight, expected.valuationWeight) &&
+    numberEquals(config.technicalWeight, expected.technicalWeight) &&
+    numberEquals(config.repairWeight, expected.repairWeight) &&
+    numberEquals(config.bottomThreshold, expected.bottomThreshold) &&
+    numberEquals(config.heatThreshold, expected.heatThreshold) &&
+    numberEquals(config.conflictGap, expected.conflictGap) &&
+    config.rsiPeriod === expected.rsiPeriod &&
+    config.smaLongDays === expected.smaLongDays &&
+    config.emaFastDays === expected.emaFastDays &&
+    config.emaSlowDays === expected.emaSlowDays &&
+    numberEquals(config.forwardPeLow, expected.forwardPeLow) &&
+    numberEquals(config.forwardPeHigh, expected.forwardPeHigh)
+  );
 }
 
 function clamp(value: number | undefined, min: number, max: number): number {

@@ -31,6 +31,8 @@ type ConfigFieldKey =
   | "technicalWeight"
   | "repairWeight"
   | "bottomThreshold"
+  | "panicBottomThreshold"
+  | "pullbackBottomThreshold"
   | "heatThreshold"
   | "conflictGap"
   | "forwardPeLow"
@@ -53,6 +55,8 @@ const CONFIG_FIELDS: ConfigFieldKey[] = [
   "technicalWeight",
   "repairWeight",
   "bottomThreshold",
+  "panicBottomThreshold",
+  "pullbackBottomThreshold",
   "heatThreshold",
   "conflictGap",
   "forwardPeLow",

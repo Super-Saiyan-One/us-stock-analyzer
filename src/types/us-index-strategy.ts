@@ -29,6 +29,8 @@ export type UsIndexZoneDegree = 0 | 25 | 50 | 75 | 100;
 export type UsIndexForwardPESignal = "undervalued" | "neutral" | "overvalued" | "unavailable";
 export type UsIndexReasonTag =
   | "panic"
+  | "panic_bottom"
+  | "pullback_bottom"
   | "cheap_valuation"
   | "oversold"
   | "trend_repair"
@@ -46,6 +48,8 @@ export interface UsIndexStrategyConfig {
   technicalWeight: number;
   repairWeight: number;
   bottomThreshold: number;
+  panicBottomThreshold: number;
+  pullbackBottomThreshold: number;
   heatThreshold: number;
   conflictGap: number;
   rsiPeriod: number;
@@ -78,6 +82,10 @@ export interface UsIndexStrategyIndicatorPoint extends UsIndexDailyCandle {
   return20d: number | null;
   return60d: number | null;
   distanceFromSmaLongPct: number | null;
+  drawdown63dPct: number | null;
+  drawdown126dPct: number | null;
+  panicBottomScore: number;
+  pullbackBottomScore: number;
   bottomScore: number;
   heatScore: number;
 }

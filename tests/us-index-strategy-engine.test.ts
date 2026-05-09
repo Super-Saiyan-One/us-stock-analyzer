@@ -13,7 +13,7 @@ import type {
   UsIndexMacroPoint,
 } from "../src/types/us-index-strategy";
 
-function makeCandles(kind: "bottom" | "heat" | "flat"): UsIndexDailyCandle[] {
+function makeCandles(kind: "bottom" | "heat" | "flat" | "pullback"): UsIndexDailyCandle[] {
   const start = Date.UTC(2023, 0, 2);
   return Array.from({ length: 260 }, (_, index) => {
     const date = new Date(start + index * 86400000).toISOString().slice(0, 10);
@@ -22,6 +22,10 @@ function makeCandles(kind: "bottom" | "heat" | "flat"): UsIndexDailyCandle[] {
         ? index < 210
           ? 120
           : 120 - (index - 209) * 0.9
+        : kind === "pullback"
+          ? index < 220
+            ? 100 + index * 0.35
+            : 177 - (index - 219) * 1.15
         : kind === "heat"
           ? 100 + index * 0.55
           : 100;
@@ -37,7 +41,7 @@ function makeCandles(kind: "bottom" | "heat" | "flat"): UsIndexDailyCandle[] {
   });
 }
 
-function makeMacro(kind: "bottom" | "heat" | "flat"): UsIndexMacroPoint[] {
+function makeMacro(kind: "bottom" | "heat" | "flat" | "pullback"): UsIndexMacroPoint[] {
   const start = Date.UTC(2023, 0, 2);
   return Array.from({ length: 260 }, (_, index) => {
     const date = new Date(start + index * 86400000).toISOString().slice(0, 10);
@@ -63,6 +67,17 @@ function makeMacro(kind: "bottom" | "heat" | "flat"): UsIndexMacroPoint[] {
         trailingPE: 31,
       };
     }
+    if (kind === "pullback") {
+      return {
+        date,
+        vix: index < 220 ? 14 : 22,
+        vix3m: index < 220 ? 17 : 24,
+        skew: 145,
+        fearGreed: index < 220 ? 76 : 46,
+        cape: 42,
+        trailingPE: 31,
+      };
+    }
     return {
       date,
       vix: 20,
@@ -78,13 +93,15 @@ function makeMacro(kind: "bottom" | "heat" | "flat"): UsIndexMacroPoint[] {
 describe("evaluateUsIndexStrategy", () => {
   it("uses the AutoQuantStock parameter search as the default config", () => {
     assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.name, "USIndexZoneResearchOpt");
-    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.fearWeight, 0.45);
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.fearWeight, 0.3);
     assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.valuationWeight, 0.15);
-    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.technicalWeight, 0.3);
-    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.repairWeight, 0.1);
-    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.bottomThreshold, 46);
-    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.heatThreshold, 56);
-    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.conflictGap, 15);
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.technicalWeight, 0.4);
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.repairWeight, 0.15);
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.bottomThreshold, 50);
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.panicBottomThreshold, 50);
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.pullbackBottomThreshold, 34);
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.heatThreshold, 52);
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.conflictGap, 5);
   });
 
   it("upgrades the old 60/60 saved default to the researched default", () => {
@@ -106,8 +123,9 @@ describe("evaluateUsIndexStrategy", () => {
     });
 
     assert.equal(config.name, "USIndexZoneResearchOpt");
-    assert.equal(config.bottomThreshold, 46);
-    assert.equal(config.heatThreshold, 56);
+    assert.equal(config.bottomThreshold, 50);
+    assert.equal(config.pullbackBottomThreshold, 34);
+    assert.equal(config.heatThreshold, 52);
   });
 
   it("normalizes user weights and clamps thresholds", () => {
@@ -166,8 +184,22 @@ describe("evaluateUsIndexStrategy", () => {
 
     assert.equal(result.latestZone.action, "dca_buy");
     assert.ok(result.latestZone.buyDegreePct >= 75);
-    assert.ok(result.latestZone.reasonTags.includes("panic"));
+    assert.ok(result.latestZone.reasonTags.includes("panic_bottom"));
     assert.ok(result.stats.buyHoldReturnPct < 0);
+  });
+
+  it("allows pullback DCA buy zones in expensive markets", () => {
+    const result = evaluateUsIndexStrategy(makeCandles("pullback"), makeMacro("pullback"), {
+      ...DEFAULT_US_INDEX_STRATEGY_CONFIG,
+      pullbackBottomThreshold: 45,
+      heatThreshold: 50,
+      conflictGap: 15,
+    });
+
+    assert.equal(result.latestZone.action, "dca_buy");
+    assert.ok(result.latestZone.buyDegreePct >= 50);
+    assert.ok(result.latestZone.reasonTags.includes("pullback_bottom"));
+    assert.ok(result.latestZone.reasonTags.includes("expensive_valuation"));
   });
 
   it("marks greedy overbought conditions as a DCA sell zone", () => {
@@ -178,7 +210,7 @@ describe("evaluateUsIndexStrategy", () => {
     });
 
     assert.equal(result.latestZone.action, "dca_sell");
-    assert.ok(result.latestZone.sellDegreePct >= 75);
+    assert.ok(result.latestZone.sellDegreePct >= 50);
     assert.ok(result.latestZone.reasonTags.includes("greed"));
     assert.ok(result.stats.buyHoldReturnPct > 0);
   });
