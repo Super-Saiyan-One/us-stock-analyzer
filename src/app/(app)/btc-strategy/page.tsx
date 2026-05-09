@@ -627,6 +627,11 @@ export default function BtcStrategyPage() {
             {tb("source")} {data.dataSource.priceSource.toUpperCase()} · CBBI{" "}
             {data.dataSource.cbbiAsOf ?? t("common.na")}
           </p>
+          {data.dataSource.isFallback ? (
+            <p className="mt-2 inline-flex rounded-md border border-warning/40 bg-warning/10 px-2 py-1 text-xs font-medium text-warning">
+              {tb("offlineSnapshot")}
+            </p>
+          ) : null}
         </div>
         <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", latestClass)}>
           {tb(`zone.${data.latestZone.action}`)}

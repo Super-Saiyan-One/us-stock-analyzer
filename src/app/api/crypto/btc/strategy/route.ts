@@ -34,6 +34,7 @@ export async function GET() {
         priceSource: priceData.source,
         priceAsOf: priceData.asOf,
         cbbiAsOf: cbbiData.asOf,
+        isFallback: false,
       },
     };
 

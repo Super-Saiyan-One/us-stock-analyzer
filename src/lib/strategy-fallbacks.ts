@@ -12,15 +12,29 @@ export const STATIC_FALLBACK_HEADERS = {
 };
 
 export function getBtcStrategyFallback(): BtcStrategyResponse {
-  return cloneJson(btcStrategyFallback) as BtcStrategyResponse;
+  const fallback = cloneJson(btcStrategyFallback) as BtcStrategyResponse;
+  return {
+    ...fallback,
+    dataSource: {
+      ...fallback.dataSource,
+      isFallback: true,
+    },
+  };
 }
 
 export function getUsIndexStrategyFallback(
   symbol: UsIndexSymbol
 ): UsIndexStrategyResponse {
-  return cloneJson(
+  const fallback = cloneJson(
     symbol === "QQQ" ? usIndexQqqFallback : usIndexSpyFallback
   ) as UsIndexStrategyResponse;
+  return {
+    ...fallback,
+    dataSource: {
+      ...fallback.dataSource,
+      isFallback: true,
+    },
+  };
 }
 
 function cloneJson<T>(value: T): T {

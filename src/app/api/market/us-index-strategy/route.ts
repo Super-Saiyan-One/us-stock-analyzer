@@ -45,6 +45,7 @@ export async function GET(request: Request) {
         priceAsOf: candles.at(-1)?.date ?? null,
         macroAsOf: macro.at(-1)?.date ?? null,
         forwardPEAsOf: forwardPE.date,
+        isFallback: false,
       },
     };
     return NextResponse.json(response);

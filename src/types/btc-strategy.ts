@@ -137,6 +137,7 @@ export interface BtcStrategyDataSource {
   priceSource: "binance" | "yahoo";
   priceAsOf: string | null;
   cbbiAsOf: string | null;
+  isFallback?: boolean;
 }
 
 export interface BtcStrategyResponse extends BtcStrategyEvaluation {

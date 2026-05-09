@@ -135,6 +135,7 @@ export interface UsIndexStrategyDataSource {
   priceAsOf: string | null;
   macroAsOf: string | null;
   forwardPEAsOf: string | null;
+  isFallback?: boolean;
 }
 
 export interface UsIndexStrategyResponse extends UsIndexStrategyEvaluation {

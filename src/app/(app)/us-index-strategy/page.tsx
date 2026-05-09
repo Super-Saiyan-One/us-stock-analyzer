@@ -328,6 +328,11 @@ export default function UsIndexStrategyPage() {
           <p className="text-sm text-muted-foreground">
             {tu("subtitle")} {tu("source")} {data.dataSource.priceAsOf ?? "-"}
           </p>
+          {data.dataSource.isFallback ? (
+            <p className="mt-2 inline-flex rounded-md border border-warning/40 bg-warning/10 px-2 py-1 text-xs font-medium text-warning">
+              {tu("offlineSnapshot")}
+            </p>
+          ) : null}
         </div>
         <div className="flex rounded-lg border bg-card p-1">
           {(["SPY", "QQQ"] as UsIndexSymbol[]).map((item) => (

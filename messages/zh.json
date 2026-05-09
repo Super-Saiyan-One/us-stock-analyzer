@@ -202,6 +202,7 @@
   "btcStrategy": {
     "title": "BTC 策略",
     "source": "数据源：",
+    "offlineSnapshot": "当前显示离线快照，数据不是实时的",
     "latestPrice": "最新价格",
     "cbbi": "CBBI",
     "ahr999": "AHR999",
@@ -366,6 +367,7 @@
     "title": "美股大盘区间",
     "subtitle": "用于 SPY 和 QQQ 的抄底定投区与过热减仓区。",
     "source": "数据截至",
+    "offlineSnapshot": "当前显示离线快照，数据不是实时的",
     "latestPrice": "最新价格",
     "currentZone": "当前区间",
     "bottomScore": "抄底分数",

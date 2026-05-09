@@ -202,6 +202,7 @@
   "btcStrategy": {
     "title": "BTC Strategy",
     "source": "Source:",
+    "offlineSnapshot": "Showing an offline snapshot. Data is not realtime.",
     "latestPrice": "Latest Price",
     "cbbi": "CBBI",
     "ahr999": "AHR999",
@@ -366,6 +367,7 @@
     "title": "US Index Zones",
     "subtitle": "Bottom DCA and heat trimming zones for SPY and QQQ.",
     "source": "Data as of",
+    "offlineSnapshot": "Showing an offline snapshot. Data is not realtime.",
     "latestPrice": "Latest Price",
     "currentZone": "Current Zone",
     "bottomScore": "Bottom Score",

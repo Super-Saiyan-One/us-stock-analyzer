@@ -13,6 +13,7 @@ describe("strategy fallbacks", () => {
     assert.ok(fallback.zonePoints.length > 0);
     assert.ok(fallback.indicators.length > 0);
     assert.ok(fallback.templates.length > 0);
+    assert.equal(fallback.dataSource.isFallback, true);
     assert.equal(typeof fallback.latestZone.action, "string");
   });
 
@@ -23,6 +24,7 @@ describe("strategy fallbacks", () => {
       const sellDays = fallback.zonePoints.filter((point) => point.action === "dca_sell").length;
 
       assert.equal(fallback.symbol, symbol);
+      assert.equal(fallback.dataSource.isFallback, true);
       assert.ok(fallback.zonePoints.length > 0);
       assert.ok(buyDays > 0);
       assert.ok(sellDays > 0);
