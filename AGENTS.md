@@ -115,6 +115,7 @@ src/
 │   └── utils.ts                   # cn() for Tailwind class merging
 ├── providers/                     # QueryClientProvider
 ├── stores/                        # Zustand (settings, watchlist)
+├── data/fallbacks/                # Static BTC/US index API snapshots for Vercel fallback
 └── types/                         # TypeScript interfaces
     ├── data-meta.ts               # DataMeta, RegimeDimension types
     ├── btc-strategy.ts            # BTC strategy config/evaluation types, optional hard stop
@@ -181,6 +182,7 @@ npm run dev              # Next.js dev (port 3000)
 npm run build            # Production build
 npm run lint             # ESLint
 npm run test:btc         # BTC strategy engine focused test
+npm run test:fallbacks   # Static strategy fallback snapshot test
 npm run test:us-index    # US index zone strategy engine focused test
 npx tsc --noEmit         # Type check
 
@@ -205,6 +207,7 @@ docker-compose up
 - [ ] **Python API no timeouts** — yfinance calls can hang indefinitely
 - [ ] **Docker healthchecks missing** — no automatic restart on failure
 - [ ] **No structured logging** — production debugging is difficult
+- [ ] **Vercel fallback snapshots are manual** — `src/data/fallbacks/*.json` keeps BTC/US index pages visible if external APIs or SQLite fail, but snapshots must be refreshed manually after strategy/data changes
 
 ### Low Priority
 - [ ] **Yahoo Finance fetch duplication** — `sp500`, `indices`, `fear-greed` routes share similar fetch+parse logic

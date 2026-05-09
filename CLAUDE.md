@@ -111,6 +111,7 @@ src/
 │   └── utils.ts                # cn() tailwind 类名合并
 ├── providers/                  # QueryClientProvider
 ├── stores/                     # Zustand stores (settings, watchlist)
+├── data/fallbacks/             # Vercel 上外部 API/SQLite 失败时使用的 BTC/美股区间静态快照
 └── types/
     ├── data-meta.ts            # 数据元信息、Regime 类型
     ├── btc-strategy.ts         # BTC 策略配置、指标、交易记录类型
@@ -162,6 +163,7 @@ python-api/
 - 表 `cache_meta`: (key, data, expires_at) — 通用 JSON 持久化缓存
 - 表 `btc_strategy_config`: (id, name, params, updated_at) — BTC 策略参数配置，`params` JSON 包含模板参数和默认关闭的 `hardStopEnabled`
 - 表 `us_index_strategy_config`: (id, name, params, updated_at) — SPY/QQQ 区间策略参数配置，`params` JSON 包含权重、阈值、指标周期、forward PE 实时闸门；精确匹配旧 60/60 默认参数时读取时升级为 AutoQuantStock 搜索默认值
+- Vercel 容错: BTC 和 US Index 策略 API 正常优先实时计算；如果外部数据或 SQLite 失败，返回 `src/data/fallbacks/*.json` 静态快照，并带 `X-Data-Fallback: static-snapshot` 响应头。
 - 关键函数:
   - `upsertTimeSeries()` — 批量写入时间序列
   - `getTimeSeries()` — 查询时间序列 (支持 limit + startDate)
@@ -293,6 +295,7 @@ npm run dev          # 启动 Next.js 开发服务器 (port 3000)
 npm run build        # 生产构建
 npm run lint         # ESLint 检查
 npm run test:btc     # BTC 策略引擎测试
+npm run test:fallbacks # Vercel 静态快照 fallback 测试
 npm run test:us-index # 美股区间策略引擎测试
 npx tsc --noEmit     # TypeScript 类型检查
 

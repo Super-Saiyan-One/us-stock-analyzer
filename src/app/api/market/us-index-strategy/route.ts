@@ -9,7 +9,10 @@ import {
   getUsIndexDailyCandles,
   getUsIndexMacroPoints,
 } from "@/lib/us-index-market-data";
-import { getUsIndexStrategyConfig } from "@/lib/db";
+import {
+  getUsIndexStrategyFallback,
+  STATIC_FALLBACK_HEADERS,
+} from "@/lib/strategy-fallbacks";
 import type { UsIndexStrategyResponse, UsIndexSymbol } from "@/types/us-index-strategy";
 
 function parseSymbol(value: string | null): UsIndexSymbol {
@@ -25,7 +28,7 @@ export async function GET(request: Request) {
       getCurrentForwardPE(),
     ]);
     const macro = await getUsIndexMacroPoints(candles);
-    const savedConfig = getUsIndexStrategyConfig();
+    const savedConfig = await getSavedConfigOrNull();
     const resolvedConfig = resolveUsIndexStrategyConfig(savedConfig);
     const config = {
       ...resolvedConfig,
@@ -46,9 +49,21 @@ export async function GET(request: Request) {
     };
     return NextResponse.json(response);
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to evaluate US index strategy" },
-      { status: 502 }
-    );
+    const { searchParams } = new URL(request.url);
+    const symbol = parseSymbol(searchParams.get("symbol"));
+    console.error("US index strategy live data failed; serving static fallback", error);
+    return NextResponse.json(getUsIndexStrategyFallback(symbol), {
+      headers: STATIC_FALLBACK_HEADERS,
+    });
+  }
+}
+
+async function getSavedConfigOrNull() {
+  try {
+    const { getUsIndexStrategyConfig } = await import("@/lib/db");
+    return getUsIndexStrategyConfig();
+  } catch (error) {
+    console.error("US index strategy config read failed; using default config", error);
+    return null;
   }
 }

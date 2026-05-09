@@ -6,14 +6,18 @@ import {
   evaluateBtcStrategy,
   normalizeConfig,
 } from "@/lib/btc-strategy-engine";
-import { getBtcStrategyConfig } from "@/lib/db";
-import type { BtcStrategyResponse } from "@/types/btc-strategy";
+import {
+  getBtcStrategyFallback,
+  STATIC_FALLBACK_HEADERS,
+} from "@/lib/strategy-fallbacks";
+import type {
+  BtcStrategyConfig,
+  BtcStrategyResponse,
+} from "@/types/btc-strategy";
 
 export async function GET() {
   try {
-    const config = normalizeConfig(
-      getBtcStrategyConfig() ?? DEFAULT_BTC_STRATEGY_CONFIG
-    );
+    const config = await getConfigOrDefault();
     const [priceData, cbbiData] = await Promise.all([
       getBtcDailyCandles(),
       getCbbiDaily(),
@@ -37,14 +41,22 @@ export async function GET() {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to evaluate BTC strategy",
+    console.error("BTC strategy live data failed; serving static fallback", error);
+    return NextResponse.json(getBtcStrategyFallback(), {
+      headers: {
+        ...STATIC_FALLBACK_HEADERS,
+        "Cache-Control": "no-store",
       },
-      { status: 502 }
-    );
+    });
+  }
+}
+
+async function getConfigOrDefault(): Promise<BtcStrategyConfig> {
+  try {
+    const { getBtcStrategyConfig } = await import("@/lib/db");
+    return normalizeConfig(getBtcStrategyConfig() ?? DEFAULT_BTC_STRATEGY_CONFIG);
+  } catch (error) {
+    console.error("BTC strategy config read failed; using default config", error);
+    return normalizeConfig(DEFAULT_BTC_STRATEGY_CONFIG);
   }
 }

@@ -3,7 +3,6 @@ import {
   DEFAULT_US_INDEX_STRATEGY_CONFIG,
   normalizeUsIndexStrategyConfig,
 } from "@/lib/us-index-strategy-engine";
-import { saveUsIndexStrategyConfig } from "@/lib/db";
 import type { UsIndexStrategyConfig } from "@/types/us-index-strategy";
 
 export async function POST(request: Request) {
@@ -14,8 +13,16 @@ export async function POST(request: Request) {
       ...body,
       currentForwardPE: undefined,
     });
-    saveUsIndexStrategyConfig(config);
-    return NextResponse.json(config);
+    try {
+      const { saveUsIndexStrategyConfig } = await import("@/lib/db");
+      saveUsIndexStrategyConfig(config);
+      return NextResponse.json(config);
+    } catch (error) {
+      console.error("US index strategy config persistence failed; returning volatile config", error);
+      return NextResponse.json(config, {
+        headers: { "X-Config-Persistence": "volatile" },
+      });
+    }
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to save US index strategy config" },
