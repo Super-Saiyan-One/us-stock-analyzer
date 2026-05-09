@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bitcoin, LayoutDashboard, Search, Star, TrendingUp, Radar, FlaskConical } from "lucide-react";
+import { Bitcoin, ChartCandlestick, LayoutDashboard, Search, Star, TrendingUp, Radar, FlaskConical } from "lucide-react";
 import { useT } from "@/i18n/context";
 import { cn } from "@/lib/utils";
 import { LocaleSwitcher } from "./locale-switcher";
@@ -12,6 +12,7 @@ const items = [
   { href: "/screener", labelKey: "screener" as const, icon: Radar },
   { href: "/signal-lab", labelKey: "signalLab" as const, icon: FlaskConical },
   { href: "/btc-strategy", labelKey: "btcStrategy" as const, icon: Bitcoin },
+  { href: "/us-index-strategy", labelKey: "usIndexStrategy" as const, icon: ChartCandlestick },
   { href: "/stock", labelKey: "stocks" as const, icon: Search },
   { href: "/watchlist", labelKey: "watchlist" as const, icon: Star },
 ];
