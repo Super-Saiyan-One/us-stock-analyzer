@@ -102,6 +102,11 @@ describe("evaluateUsIndexStrategy", () => {
     assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.pullbackBottomThreshold, 34);
     assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.heatThreshold, 52);
     assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.conflictGap, 5);
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.qqqPeWarning, 38);
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.vixPanicThreshold, 30);
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.vixComplacencyThreshold, 14);
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.fearExtremeThreshold, 20);
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.greedExtremeThreshold, 80);
   });
 
   it("upgrades the old 60/60 saved default to the researched default", () => {
@@ -137,10 +142,20 @@ describe("evaluateUsIndexStrategy", () => {
       repairWeight: 0,
       bottomThreshold: 200,
       heatThreshold: -10,
+      qqqPeWarning: 500,
+      vixPanicThreshold: -5,
+      vixComplacencyThreshold: 101,
+      fearExtremeThreshold: -10,
+      greedExtremeThreshold: 120,
     });
 
     assert.equal(config.bottomThreshold, 100);
     assert.equal(config.heatThreshold, 0);
+    assert.equal(config.qqqPeWarning, 100);
+    assert.equal(config.vixPanicThreshold, 0);
+    assert.equal(config.vixComplacencyThreshold, 100);
+    assert.equal(config.fearExtremeThreshold, 0);
+    assert.equal(config.greedExtremeThreshold, 100);
     assert.equal(Number((config.fearWeight + config.technicalWeight).toFixed(6)), 1);
     assert.equal(config.valuationWeight, 0);
   });
@@ -175,6 +190,44 @@ describe("evaluateUsIndexStrategy", () => {
     assert.equal(highForward.currentGate.forwardPE?.signal, "overvalued");
   });
 
+  it("keeps current-only QQQ PE out of historical scoring while softening latest buy strength", () => {
+    const candles = makeCandles("pullback");
+    const macro = makeMacro("pullback");
+    const neutralQqqPE = evaluateUsIndexStrategy(candles, macro, {
+      ...DEFAULT_US_INDEX_STRATEGY_CONFIG,
+      pullbackBottomThreshold: 45,
+      currentQQQPE: { date: "2026-04-30", value: 32, source: "test", methodology: "current" },
+    });
+    const highQqqPE = evaluateUsIndexStrategy(candles, macro, {
+      ...DEFAULT_US_INDEX_STRATEGY_CONFIG,
+      pullbackBottomThreshold: 45,
+      currentQQQPE: { date: "2026-04-30", value: 40, source: "test", methodology: "current" },
+    });
+
+    assert.deepEqual(
+      neutralQqqPE.zonePoints.map((point) => ({
+        date: point.date,
+        action: point.action,
+        buyDegreePct: point.buyDegreePct,
+        sellDegreePct: point.sellDegreePct,
+        bottomScore: point.bottomScore,
+        heatScore: point.heatScore,
+      })),
+      highQqqPE.zonePoints.map((point) => ({
+        date: point.date,
+        action: point.action,
+        buyDegreePct: point.buyDegreePct,
+        sellDegreePct: point.sellDegreePct,
+        bottomScore: point.bottomScore,
+        heatScore: point.heatScore,
+      }))
+    );
+    assert.equal(highQqqPE.currentGate.qqqPE?.signal, "warning");
+    assert.equal(highQqqPE.latestZone.action, "dca_buy");
+    assert.ok(highQqqPE.latestZone.reasonTags.includes("qqq_pe_warning"));
+    assert.ok(highQqqPE.latestZone.buyDegreePct <= neutralQqqPE.latestZone.buyDegreePct);
+  });
+
   it("marks panic and oversold conditions as a DCA buy zone", () => {
     const result = evaluateUsIndexStrategy(makeCandles("bottom"), makeMacro("bottom"), {
       ...DEFAULT_US_INDEX_STRATEGY_CONFIG,
@@ -185,6 +238,8 @@ describe("evaluateUsIndexStrategy", () => {
     assert.equal(result.latestZone.action, "dca_buy");
     assert.ok(result.latestZone.buyDegreePct >= 75);
     assert.ok(result.latestZone.reasonTags.includes("panic_bottom"));
+    assert.ok(result.latestZone.reasonTags.includes("vix_panic"));
+    assert.ok(result.latestZone.reasonTags.includes("fear_extreme"));
     assert.ok(result.stats.buyHoldReturnPct < 0);
   });
 
@@ -212,6 +267,8 @@ describe("evaluateUsIndexStrategy", () => {
     assert.equal(result.latestZone.action, "dca_sell");
     assert.ok(result.latestZone.sellDegreePct >= 50);
     assert.ok(result.latestZone.reasonTags.includes("greed"));
+    assert.ok(result.latestZone.reasonTags.includes("vix_complacency"));
+    assert.ok(result.latestZone.reasonTags.includes("greed_extreme"));
     assert.ok(result.stats.buyHoldReturnPct > 0);
   });
 });

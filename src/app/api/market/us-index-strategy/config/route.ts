@@ -12,6 +12,7 @@ export async function POST(request: Request) {
       ...DEFAULT_US_INDEX_STRATEGY_CONFIG,
       ...body,
       currentForwardPE: undefined,
+      currentQQQPE: undefined,
     });
     try {
       const { saveUsIndexStrategyConfig } = await import("@/lib/db");

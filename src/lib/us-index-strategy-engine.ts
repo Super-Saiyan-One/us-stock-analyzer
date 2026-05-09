@@ -2,6 +2,7 @@ import type {
   UsIndexDailyCandle,
   UsIndexForwardPESignal,
   UsIndexMacroPoint,
+  UsIndexQQQPESignal,
   UsIndexReasonTag,
   UsIndexStrategyConfig,
   UsIndexStrategyEvaluation,
@@ -30,6 +31,11 @@ export const DEFAULT_US_INDEX_STRATEGY_CONFIG: UsIndexStrategyConfig = {
   emaSlowDays: 50,
   forwardPeLow: 18,
   forwardPeHigh: 24,
+  qqqPeWarning: 38,
+  vixPanicThreshold: 30,
+  vixComplacencyThreshold: 14,
+  fearExtremeThreshold: 20,
+  greedExtremeThreshold: 80,
 };
 
 const LEGACY_US_INDEX_BALANCED_DEFAULT: UsIndexStrategyConfig = {
@@ -49,6 +55,11 @@ const LEGACY_US_INDEX_BALANCED_DEFAULT: UsIndexStrategyConfig = {
   emaSlowDays: 50,
   forwardPeLow: 18,
   forwardPeHigh: 24,
+  qqqPeWarning: 38,
+  vixPanicThreshold: 30,
+  vixComplacencyThreshold: 14,
+  fearExtremeThreshold: 20,
+  greedExtremeThreshold: 80,
 };
 
 const LEGACY_US_INDEX_RESEARCH_DEFAULT: UsIndexStrategyConfig = {
@@ -68,6 +79,11 @@ const LEGACY_US_INDEX_RESEARCH_DEFAULT: UsIndexStrategyConfig = {
   emaSlowDays: 50,
   forwardPeLow: 18,
   forwardPeHigh: 24,
+  qqqPeWarning: 38,
+  vixPanicThreshold: 30,
+  vixComplacencyThreshold: 14,
+  fearExtremeThreshold: 20,
+  greedExtremeThreshold: 80,
 };
 
 export const US_INDEX_STRATEGY_TEMPLATES: UsIndexStrategyTemplate[] = [
@@ -118,7 +134,13 @@ export function normalizeUsIndexStrategyConfig(
     emaSlowDays: clampInt(merged.emaSlowDays, 10, 300),
     forwardPeLow: clamp(merged.forwardPeLow, 1, 80),
     forwardPeHigh: clamp(merged.forwardPeHigh, 1, 100),
+    qqqPeWarning: clamp(merged.qqqPeWarning, 1, 100),
+    vixPanicThreshold: clamp(merged.vixPanicThreshold, 0, 100),
+    vixComplacencyThreshold: clamp(merged.vixComplacencyThreshold, 0, 100),
+    fearExtremeThreshold: clamp(merged.fearExtremeThreshold, 0, 100),
+    greedExtremeThreshold: clamp(merged.greedExtremeThreshold, 0, 100),
     currentForwardPE: merged.currentForwardPE,
+    currentQQQPE: merged.currentQQQPE,
   };
 }
 
@@ -139,7 +161,12 @@ export function evaluateUsIndexStrategy(
   const normalized = normalizeUsIndexStrategyConfig(config);
   const indicators = buildIndicators(candles, macroPoints, normalized);
   const zonePoints = indicators.map((point) => buildZonePoint(point, normalized));
-  const latestZone = zonePoints.at(-1) ?? EMPTY_ZONE;
+  const currentGate = {
+    forwardPE: buildForwardPEGate(normalized),
+    qqqPE: buildQQQPEGate(normalized),
+    sentiment: buildCurrentSentimentGate(indicators.at(-1), normalized),
+  };
+  const latestZone = applyCurrentOnlyGates(zonePoints.at(-1) ?? EMPTY_ZONE, currentGate.qqqPE);
   return {
     config: normalized,
     indicators,
@@ -155,9 +182,7 @@ export function evaluateUsIndexStrategy(
       heatScore: latestZone.heatScore,
     },
     stats: computeStats(zonePoints),
-    currentGate: {
-      forwardPE: buildForwardPEGate(normalized),
-    },
+    currentGate,
   };
 }
 
@@ -273,15 +298,22 @@ function buildZonePoint(
       ? Math.max(point.panicBottomScore, point.pullbackBottomScore, point.bottomScore)
       : point.heatScore;
   const degree = action === "hold" ? 0 : toDegree(score);
+  const reasonTags = getReasonTags(point, action, config);
+  const boostedDegree =
+    action === "dca_buy" && hasBuyEnhancer(point, config)
+      ? increaseDegree(degree)
+      : action === "dca_sell" && hasSellEnhancer(point, config)
+        ? increaseDegree(degree)
+        : degree;
   return {
     date: point.date,
     close: point.close,
     action,
-    buyDegreePct: action === "dca_buy" ? degree : 0,
-    sellDegreePct: action === "dca_sell" ? degree : 0,
+    buyDegreePct: action === "dca_buy" ? boostedDegree : 0,
+    sellDegreePct: action === "dca_sell" ? boostedDegree : 0,
     bottomScore: round2(point.bottomScore),
     heatScore: round2(point.heatScore),
-    reasonTags: getReasonTags(point, action, config),
+    reasonTags,
   };
 }
 
@@ -445,6 +477,8 @@ function getReasonTags(
     }
     if (point.emaFast != null && point.close > point.emaFast) tags.push("trend_repair");
     if (forwardSignal === "undervalued") tags.push("forward_pe_low");
+    if (point.vix != null && point.vix >= config.vixPanicThreshold) tags.push("vix_panic");
+    if (point.fearGreed != null && point.fearGreed <= config.fearExtremeThreshold) tags.push("fear_extreme");
   }
   if (action === "dca_sell") {
     if (point.fearGreed != null && point.fearGreed >= 70) tags.push("greed");
@@ -456,6 +490,8 @@ function getReasonTags(
     }
     if (point.emaFast != null && point.close < point.emaFast) tags.push("trend_weakening");
     if (forwardSignal === "overvalued") tags.push("forward_pe_high");
+    if (point.vix != null && point.vix <= config.vixComplacencyThreshold) tags.push("vix_complacency");
+    if (point.fearGreed != null && point.fearGreed >= config.greedExtremeThreshold) tags.push("greed_extreme");
   }
   return tags;
 }
@@ -469,6 +505,94 @@ function buildForwardPEGate(config: UsIndexStrategyConfig) {
   if (gate.value <= config.forwardPeLow) signal = "undervalued";
   if (gate.value >= config.forwardPeHigh) signal = "overvalued";
   return { date: gate.date, value: gate.value, signal };
+}
+
+function buildQQQPEGate(config: UsIndexStrategyConfig) {
+  const gate = config.currentQQQPE;
+  if (!gate || gate.value == null || !Number.isFinite(gate.value)) {
+    return {
+      date: gate?.date ?? null,
+      value: gate?.value ?? null,
+      source: gate?.source ?? null,
+      methodology: gate?.methodology ?? null,
+      signal: "unavailable" as const,
+    };
+  }
+  const signal: UsIndexQQQPESignal = gate.value >= config.qqqPeWarning ? "warning" : "neutral";
+  return {
+    date: gate.date,
+    value: gate.value,
+    source: gate.source,
+    methodology: gate.methodology,
+    signal,
+  };
+}
+
+function buildCurrentSentimentGate(
+  point: UsIndexStrategyIndicatorPoint | undefined,
+  config: UsIndexStrategyConfig
+) {
+  if (!point) return null;
+  return {
+    date: point.date,
+    vix: point.vix,
+    fearGreed: point.fearGreed,
+    vixSignal:
+      point.vix == null
+        ? "unavailable"
+        : point.vix >= config.vixPanicThreshold
+          ? "panic"
+          : point.vix <= config.vixComplacencyThreshold
+            ? "complacency"
+            : "neutral",
+    fearGreedSignal:
+      point.fearGreed == null
+        ? "unavailable"
+        : point.fearGreed <= config.fearExtremeThreshold
+          ? "panic"
+          : point.fearGreed >= config.greedExtremeThreshold
+            ? "complacency"
+            : "neutral",
+  } as const;
+}
+
+function applyCurrentOnlyGates(
+  zone: UsIndexStrategyZonePoint,
+  qqqPE: ReturnType<typeof buildQQQPEGate> | null
+): UsIndexStrategyZonePoint {
+  if (qqqPE?.signal !== "warning") return zone;
+  const reasonTags = zone.reasonTags.includes("qqq_pe_warning")
+    ? zone.reasonTags
+    : [...zone.reasonTags, "qqq_pe_warning" as const];
+  if (zone.action === "dca_buy") {
+    return {
+      ...zone,
+      buyDegreePct: decreaseDegreeSoft(zone.buyDegreePct),
+      reasonTags,
+    };
+  }
+  if (zone.action === "dca_sell") {
+    return {
+      ...zone,
+      sellDegreePct: increaseDegree(zone.sellDegreePct),
+      reasonTags,
+    };
+  }
+  return { ...zone, reasonTags };
+}
+
+function hasBuyEnhancer(point: UsIndexStrategyIndicatorPoint, config: UsIndexStrategyConfig): boolean {
+  return (
+    (point.vix != null && point.vix >= config.vixPanicThreshold) ||
+    (point.fearGreed != null && point.fearGreed <= config.fearExtremeThreshold)
+  );
+}
+
+function hasSellEnhancer(point: UsIndexStrategyIndicatorPoint, config: UsIndexStrategyConfig): boolean {
+  return (
+    (point.vix != null && point.vix <= config.vixComplacencyThreshold) ||
+    (point.fearGreed != null && point.fearGreed >= config.greedExtremeThreshold)
+  );
 }
 
 function computeStats(zonePoints: UsIndexStrategyZonePoint[]): UsIndexStrategyStats {
@@ -621,6 +745,20 @@ function toDegree(score: number): UsIndexZoneDegree {
   return 0;
 }
 
+function increaseDegree(degree: UsIndexZoneDegree): UsIndexZoneDegree {
+  if (degree >= 75) return 100;
+  if (degree >= 50) return 75;
+  if (degree >= 25) return 50;
+  return 25;
+}
+
+function decreaseDegreeSoft(degree: UsIndexZoneDegree): UsIndexZoneDegree {
+  if (degree >= 100) return 75;
+  if (degree >= 75) return 50;
+  if (degree >= 50) return 25;
+  return degree;
+}
+
 function finiteOr(value: number | undefined, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
@@ -644,7 +782,12 @@ function matchesConfig(config: UsIndexStrategyConfig, expected: UsIndexStrategyC
     config.emaFastDays === expected.emaFastDays &&
     config.emaSlowDays === expected.emaSlowDays &&
     numberEquals(config.forwardPeLow, expected.forwardPeLow) &&
-    numberEquals(config.forwardPeHigh, expected.forwardPeHigh)
+    numberEquals(config.forwardPeHigh, expected.forwardPeHigh) &&
+    numberEquals(config.qqqPeWarning, expected.qqqPeWarning) &&
+    numberEquals(config.vixPanicThreshold, expected.vixPanicThreshold) &&
+    numberEquals(config.vixComplacencyThreshold, expected.vixComplacencyThreshold) &&
+    numberEquals(config.fearExtremeThreshold, expected.fearExtremeThreshold) &&
+    numberEquals(config.greedExtremeThreshold, expected.greedExtremeThreshold)
   );
 }
 

@@ -10,7 +10,14 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Activity, ArrowDownCircle, ArrowUpCircle, Gauge, SlidersHorizontal } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Gauge,
+  SlidersHorizontal,
+} from "lucide-react";
 import {
   useSaveUsIndexStrategyConfig,
   useUsIndexStrategy,
@@ -37,6 +44,11 @@ type ConfigFieldKey =
   | "conflictGap"
   | "forwardPeLow"
   | "forwardPeHigh"
+  | "qqqPeWarning"
+  | "vixPanicThreshold"
+  | "vixComplacencyThreshold"
+  | "fearExtremeThreshold"
+  | "greedExtremeThreshold"
   | "rsiPeriod"
   | "smaLongDays"
   | "emaFastDays"
@@ -61,6 +73,11 @@ const CONFIG_FIELDS: ConfigFieldKey[] = [
   "conflictGap",
   "forwardPeLow",
   "forwardPeHigh",
+  "qqqPeWarning",
+  "vixPanicThreshold",
+  "vixComplacencyThreshold",
+  "fearExtremeThreshold",
+  "greedExtremeThreshold",
   "rsiPeriod",
   "smaLongDays",
   "emaFastDays",
@@ -83,6 +100,11 @@ function formatPct(value: number | null | undefined) {
 
 function formatScore(value: number) {
   return value.toFixed(1);
+}
+
+function formatNumber(value: number | null | undefined, digits = 2) {
+  if (value == null || !Number.isFinite(value)) return "-";
+  return value.toFixed(digits);
 }
 
 function formatParameterInput(key: ConfigFieldKey, value: number) {
@@ -259,7 +281,7 @@ function ConfigForm({ data }: { data: UsIndexStrategyResponse }) {
   };
 
   const submit = () => {
-    save.mutate({ ...form, currentForwardPE: undefined });
+    save.mutate({ ...form, currentForwardPE: undefined, currentQQQPE: undefined });
   };
 
   return (
@@ -412,7 +434,43 @@ export default function UsIndexStrategyPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               {tu(`forwardPeSignal.${forwardGate?.signal ?? "unavailable"}`)}
             </p>
-            <p className="mt-3 text-xs text-muted-foreground">{tu("forwardPeNote")}</p>
+          <p className="mt-3 text-xs text-muted-foreground">{tu("forwardPeNote")}</p>
+          </div>
+          <div className="rounded-lg border bg-card p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              <h2 className="font-semibold">{tu("auxiliaryGates")}</h2>
+            </div>
+            <div className="space-y-3 text-sm">
+              <div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">{tu("qqqPeGate")}</span>
+                  <span className="tabular-nums">{formatNumber(data.currentGate.qqqPE?.value)}</span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {tu(`qqqPeSignal.${data.currentGate.qqqPE?.signal ?? "unavailable"}`)}
+                </p>
+              </div>
+              <div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">{tu("vixGate")}</span>
+                  <span className="tabular-nums">{formatNumber(data.currentGate.sentiment?.vix)}</span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {tu(`sentimentGate.${data.currentGate.sentiment?.vixSignal ?? "unavailable"}`)}
+                </p>
+              </div>
+              <div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">{tu("fearGreedGate")}</span>
+                  <span className="tabular-nums">{formatNumber(data.currentGate.sentiment?.fearGreed, 0)}</span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {tu(`sentimentGate.${data.currentGate.sentiment?.fearGreedSignal ?? "unavailable"}`)}
+                </p>
+              </div>
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">{tu("auxiliaryGateNote")}</p>
           </div>
         </div>
       </div>
@@ -426,6 +484,7 @@ export default function UsIndexStrategyPage() {
             <p>{tu("strategyExplanation.bottom")}</p>
             <p>{tu("strategyExplanation.heat")}</p>
             <p>{tu("strategyExplanation.forwardPE")}</p>
+            <p>{tu("strategyExplanation.auxiliaryGates")}</p>
           </div>
         </div>
       </div>

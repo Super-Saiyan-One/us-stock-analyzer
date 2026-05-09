@@ -28,6 +28,9 @@ describe("strategy fallbacks", () => {
       assert.ok(fallback.zonePoints.length > 0);
       assert.ok(buyDays > 0);
       assert.ok(sellDays > 0);
+      assert.equal(fallback.config.qqqPeWarning, 38);
+      assert.ok(fallback.currentGate.qqqPE);
+      assert.ok(fallback.currentGate.sentiment);
     }
   });
 });

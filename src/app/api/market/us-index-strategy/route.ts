@@ -6,6 +6,7 @@ import {
 } from "@/lib/us-index-strategy-engine";
 import {
   getCurrentForwardPE,
+  getCurrentQQQPE,
   getUsIndexDailyCandles,
   getUsIndexMacroPoints,
 } from "@/lib/us-index-market-data";
@@ -23,9 +24,10 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const symbol = parseSymbol(searchParams.get("symbol"));
-    const [candles, forwardPE] = await Promise.all([
+    const [candles, forwardPE, qqqPE] = await Promise.all([
       getUsIndexDailyCandles(symbol),
       getCurrentForwardPE(),
+      getCurrentQQQPE(),
     ]);
     const macro = await getUsIndexMacroPoints(candles);
     const savedConfig = await getSavedConfigOrNull();
@@ -33,6 +35,7 @@ export async function GET(request: Request) {
     const config = {
       ...resolvedConfig,
       currentForwardPE: forwardPE,
+      currentQQQPE: qqqPE,
     };
     const evaluation = evaluateUsIndexStrategy(candles, macro, config);
     const response: UsIndexStrategyResponse = {
@@ -45,6 +48,7 @@ export async function GET(request: Request) {
         priceAsOf: candles.at(-1)?.date ?? null,
         macroAsOf: macro.at(-1)?.date ?? null,
         forwardPEAsOf: forwardPE.date,
+        qqqPEAsOf: qqqPE.date,
         isFallback: false,
       },
     };

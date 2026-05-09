@@ -9,6 +9,7 @@ import type {
   UsIndexDailyCandle,
   UsIndexForwardPEGate,
   UsIndexMacroPoint,
+  UsIndexQQQPEGate,
   UsIndexSymbol,
 } from "@/types/us-index-strategy";
 
@@ -26,6 +27,8 @@ const MACRO_SYMBOLS = {
 const CNN_FEAR_GREED_URL =
   "https://production.dataviz.cnn.io/index/fearandgreed/graphdata/2021-01-01";
 const TRAILING_PE_HISTORY_URL = `${STOCKMARKET_PE_URL}/js/historical-sp-500-pe-ratio-since-1990.js`;
+const YAHOO_QUOTE_SUMMARY_URL =
+  "https://query1.finance.yahoo.com/v10/finance/quoteSummary/QQQ?modules=defaultKeyStatistics";
 
 interface DateValuePoint {
   date: string;
@@ -96,6 +99,40 @@ export async function getCurrentForwardPE(): Promise<UsIndexForwardPEGate> {
   };
   cacheSet(cacheKey, gate, CACHE_TTL.FORWARD_PE);
   return gate;
+}
+
+export async function getCurrentQQQPE(): Promise<UsIndexQQQPEGate> {
+  const cacheKey = "us-index:qqq-pe:current";
+  const cached = cacheGet<UsIndexQQQPEGate>(cacheKey);
+  if (cached) return cached;
+
+  const gate: UsIndexQQQPEGate = {
+    date: new Date().toISOString().slice(0, 10),
+    value: null,
+    source: "Yahoo Finance quoteSummary defaultKeyStatistics trailingPE",
+    methodology: "Current QQQ ETF trailing PE snapshot; no stable free history found.",
+  };
+  try {
+    const res = await fetch(YAHOO_QUOTE_SUMMARY_URL, {
+      headers: { "User-Agent": "Mozilla/5.0" },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) {
+      cacheSet(cacheKey, gate, CACHE_TTL.FORWARD_PE);
+      return gate;
+    }
+    const json = await res.json();
+    const raw =
+      json.quoteSummary?.result?.[0]?.defaultKeyStatistics?.trailingPE?.raw ??
+      json.quoteSummary?.result?.[0]?.defaultKeyStatistics?.trailingPE?.fmt;
+    const value = typeof raw === "number" ? raw : Number.parseFloat(String(raw));
+    gate.value = Number.isFinite(value) ? value : null;
+    cacheSet(cacheKey, gate, CACHE_TTL.FORWARD_PE);
+    return gate;
+  } catch {
+    cacheSet(cacheKey, gate, CACHE_TTL.FORWARD_PE);
+    return gate;
+  }
 }
 
 async function fetchYahooCandles(symbol: string, range: string) {

@@ -389,6 +389,11 @@
     "referenceNote": "Returns are a lightweight daily reference using zone exposure. They are not a precise broker backtest.",
     "forwardPeGate": "Forward PE Gate",
     "forwardPeNote": "Forward PE is current-only because stable free history was not found. It gates realtime interpretation only and is not used in historical score calculation.",
+    "auxiliaryGates": "Auxiliary Gates",
+    "qqqPeGate": "QQQ PE Warning",
+    "vixGate": "VIX Gate",
+    "fearGreedGate": "Fear & Greed Gate",
+    "auxiliaryGateNote": "These are auxiliary gates, not a standalone trading system. They can strengthen or soften the current zone but do not replace the main model.",
     "strategyExplanationTitle": "Strategy Explanation",
     "loadFailed": "Failed to load US index strategy data.",
     "noReason": "No active reason",
@@ -403,6 +408,11 @@
     "conflictGap": "Conflict Gap",
     "forwardPeLow": "Forward PE Low",
     "forwardPeHigh": "Forward PE High",
+    "qqqPeWarning": "QQQ PE Warning",
+    "vixPanicThreshold": "VIX Panic",
+    "vixComplacencyThreshold": "VIX Complacency",
+    "fearExtremeThreshold": "Extreme Fear",
+    "greedExtremeThreshold": "Extreme Greed",
     "rsiPeriod": "RSI Period",
     "smaLongDays": "Long SMA Days",
     "emaFastDays": "Fast EMA Days",
@@ -419,6 +429,11 @@
       "conflictGap": "Minimum score gap needed when bottom and heat signals conflict.",
       "forwardPeLow": "Current forward PE below this value adds a low-valuation realtime gate.",
       "forwardPeHigh": "Current forward PE above this value adds a high-valuation realtime gate.",
+      "qqqPeWarning": "Current-only QQQ PE at or above this value softens buy degree and strengthens sell confidence.",
+      "vixPanicThreshold": "Historical VIX at or above this value adds vix_panic and strengthens buy-zone degree.",
+      "vixComplacencyThreshold": "Historical VIX at or below this value adds vix_complacency and strengthens sell-zone degree.",
+      "fearExtremeThreshold": "Fear & Greed at or below this value adds fear_extreme and strengthens panic-bottom interpretation.",
+      "greedExtremeThreshold": "Fear & Greed at or above this value adds greed_extreme and strengthens heat interpretation.",
       "rsiPeriod": "RSI lookback period for oversold and overbought checks.",
       "smaLongDays": "Long moving average used for distance and trend context.",
       "emaFastDays": "Fast EMA used for trend repair or weakening.",
@@ -428,7 +443,8 @@
       "logic": "The model scores bottom risk and heat risk separately. It does not rotate between SPY and QQQ; defaults are selected by the AutoQuantStock parameter search report.",
       "bottom": "Bottom zones are split into panic bottoms and pullback bottoms. High valuation can reduce pullback strength, but it does not block clear drawdown DCA zones.",
       "heat": "Heat zones need greed, expensive historical valuation, overbought price action, or trend weakening.",
-      "forwardPE": "Forward PE is a realtime gate only, so today's forward PE never rewrites historical scores."
+      "forwardPE": "Forward PE is a realtime gate only, so today's forward PE never rewrites historical scores.",
+      "auxiliaryGates": "QQQ PE, VIX, and Fear & Greed gates are auxiliary rules. QQQ PE is current-only; VIX and Fear & Greed can add reason tags and adjust degree when their historical data is available."
     },
     "zone": {
       "dca_buy": "DCA Buy Zone",
@@ -447,13 +463,29 @@
       "overbought": "Overbought",
       "trend_weakening": "Trend weakening",
       "forward_pe_low": "Forward PE low",
-      "forward_pe_high": "Forward PE high"
+      "forward_pe_high": "Forward PE high",
+      "qqq_pe_warning": "QQQ PE warning",
+      "vix_panic": "VIX panic",
+      "vix_complacency": "VIX complacency",
+      "fear_extreme": "Extreme fear",
+      "greed_extreme": "Extreme greed"
     },
     "forwardPeSignal": {
       "undervalued": "Current forward PE is below the low gate.",
       "neutral": "Current forward PE is neutral.",
       "overvalued": "Current forward PE is above the high gate.",
       "unavailable": "Current forward PE is unavailable."
+    },
+    "qqqPeSignal": {
+      "neutral": "Current QQQ PE is below the warning line.",
+      "warning": "Current QQQ PE is above the warning line. Buy strength is softened, sell confidence is higher.",
+      "unavailable": "Current QQQ PE is unavailable, so this gate is not applied."
+    },
+    "sentimentGate": {
+      "panic": "Extreme panic supports bottom-zone interpretation.",
+      "complacency": "Low fear or high greed supports heat-zone interpretation.",
+      "neutral": "Current sentiment gate is neutral.",
+      "unavailable": "Current sentiment value is unavailable."
     },
     "range": {
       "1y": "1Y",

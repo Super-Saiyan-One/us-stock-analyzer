@@ -29,6 +29,7 @@
 ### 外部 API (直接在 Next.js API Routes 中调用)
 - Yahoo Finance Chart API — 行情、K线、指数 (无需认证)
 - Yahoo Finance Chart API (`^VIX`, `^VIX3M`, `^SKEW`) — 美股区间恐慌/风险代理 (无需认证)
+- Yahoo Finance quoteSummary (`QQQ`) — 当前 QQQ trailing PE 辅助闸门，current-only，不参与历史评分 (best effort)
 - Yahoo Finance Search API — 股票搜索 (无需认证)
 - Binance Spot Klines API — BTCUSDT 日线 (无需认证)
 - Colin Talks Crypto CBBI — BTC 周期信心指标 (无需认证)
@@ -45,7 +46,7 @@ src/
 │   ├── (app)/                  # 带侧边栏/底部导航的布局组
 │   │   ├── dashboard/          # 市场总览仪表盘 (Regime Radar + 多版块)
 │   │   ├── btc-strategy/       # BTC 区间信号看板 (区间时间带 + 可选硬止损)
-│   │   ├── us-index-strategy/  # SPY/QQQ 恐慌/回撤抄底定投区 + 过热减仓区，默认参数来自 AutoQuantStock 搜索
+│   │   ├── us-index-strategy/  # SPY/QQQ 恐慌/回撤抄底定投区 + 过热减仓区，含 QQQ PE/VIX/Fear 辅助闸门
 │   │   ├── screener/           # 机会扫描器 (Phase 1)
 │   │   ├── signal-lab/         # 信号验证实验室 (Phase 2)
 │   │   ├── stock/              # 个股搜索 + 详情 + 期权
@@ -102,8 +103,8 @@ src/
 │   ├── db.ts                   # SQLite 持久化层 (时间序列 + 分位数 + 信号观察)
 │   ├── btc-market-data.ts      # BTC 日线 + CBBI 获取/缓存
 │   ├── btc-strategy-engine.ts  # BTC 区间信号 + 参考交易评估器 (硬止损默认关闭)
-│   ├── us-index-market-data.ts # SPY/QQQ 日线 + VIX/Fear/估值数据
-│   ├── us-index-strategy-engine.ts # 美股大盘恐慌/回撤抄底 + 过热区间评分器，包含研究优化默认参数
+│   ├── us-index-market-data.ts # SPY/QQQ 日线 + VIX/Fear/估值数据 + 当前 QQQ PE 闸门
+│   ├── us-index-strategy-engine.ts # 美股大盘恐慌/回撤抄底 + 过热区间评分器，包含研究优化默认参数和辅助闸门
 │   ├── constants.ts            # 所有常量 (API URL、缓存 TTL、staleTime)
 │   ├── formatters.ts           # 数字/货币/百分比格式化
 │   ├── screener-engine.ts      # 扫描器评分引擎 (分类 + 综合评分)
@@ -162,7 +163,7 @@ python-api/
 - 表 `time_series`: (series_id, date, value, source, fetched_at) — FRED 时间序列
 - 表 `cache_meta`: (key, data, expires_at) — 通用 JSON 持久化缓存
 - 表 `btc_strategy_config`: (id, name, params, updated_at) — BTC 策略参数配置，`params` JSON 包含模板参数和默认关闭的 `hardStopEnabled`
-- 表 `us_index_strategy_config`: (id, name, params, updated_at) — SPY/QQQ 区间策略参数配置，`params` JSON 包含权重、恐慌/回撤抄底阈值、过热阈值、指标周期、forward PE 实时闸门；精确匹配旧 60/60 或旧 research 默认参数时读取时升级为最新 AutoQuantStock 搜索默认值
+- 表 `us_index_strategy_config`: (id, name, params, updated_at) — SPY/QQQ 区间策略参数配置，`params` JSON 包含权重、恐慌/回撤抄底阈值、过热阈值、指标周期、forward PE 实时闸门，以及 QQQ PE/VIX/Fear 辅助闸门阈值；精确匹配旧 60/60 或旧 research 默认参数时读取时升级为最新 AutoQuantStock 搜索默认值
 - Vercel 容错: BTC 和 US Index 策略 API 正常优先实时计算；如果外部数据或 SQLite 失败，返回 `src/data/fallbacks/*.json` 静态快照，并带 `X-Data-Fallback: static-snapshot` 响应头。
 - 关键函数:
   - `upsertTimeSeries()` — 批量写入时间序列

@@ -389,6 +389,11 @@
     "referenceNote": "收益是基于日线区间仓位的轻量参考，不是券商级精确回测。",
     "forwardPeGate": "前瞻 PE 闸门",
     "forwardPeNote": "前瞻 PE 因为没找到稳定免费历史，只作为当前实时闸门，不参与历史评分。",
+    "auxiliaryGates": "辅助闸门",
+    "qqqPeGate": "QQQ PE 警戒",
+    "vixGate": "VIX 闸门",
+    "fearGreedGate": "恐惧贪婪闸门",
+    "auxiliaryGateNote": "这些是辅助闸门，不是单独交易系统。它们只增强或削弱当前区间解释，不替代主模型。",
     "strategyExplanationTitle": "策略解释",
     "loadFailed": "美股区间策略数据加载失败。",
     "noReason": "当前没有触发原因",
@@ -403,6 +408,11 @@
     "conflictGap": "冲突分差",
     "forwardPeLow": "前瞻 PE 低估线",
     "forwardPeHigh": "前瞻 PE 高估线",
+    "qqqPeWarning": "QQQ PE 警戒线",
+    "vixPanicThreshold": "VIX 恐慌线",
+    "vixComplacencyThreshold": "VIX 低波动线",
+    "fearExtremeThreshold": "极度恐惧线",
+    "greedExtremeThreshold": "极度贪婪线",
     "rsiPeriod": "RSI 周期",
     "smaLongDays": "长期 SMA 天数",
     "emaFastDays": "快线 EMA 天数",
@@ -419,6 +429,11 @@
       "conflictGap": "抄底和过热同时出现时，需要至少相差这么多分才行动。",
       "forwardPeLow": "当前前瞻 PE 低于该值时，增加低估实时闸门。",
       "forwardPeHigh": "当前前瞻 PE 高于该值时，增加高估实时闸门。",
+      "qqqPeWarning": "当前 QQQ PE 达到或超过该值时，降低买入强度、提高减仓可信度。",
+      "vixPanicThreshold": "历史 VIX 达到或超过该值时，增加 vix_panic 原因，并增强买入区强度。",
+      "vixComplacencyThreshold": "历史 VIX 低于或等于该值时，增加 vix_complacency 原因，并增强减仓区强度。",
+      "fearExtremeThreshold": "恐惧贪婪低于或等于该值时，增加 fear_extreme 原因，强化恐慌抄底解释。",
+      "greedExtremeThreshold": "恐惧贪婪高于或等于该值时，增加 greed_extreme 原因，强化过热减仓解释。",
       "rsiPeriod": "用于判断超跌和超买的 RSI 周期。",
       "smaLongDays": "用于距离和长期趋势判断的长期均线。",
       "emaFastDays": "用于趋势修复或转弱判断的快线 EMA。",
@@ -428,7 +443,8 @@
       "logic": "模型分别计算抄底风险和过热风险，不做 SPY/QQQ 轮动；默认参数由 AutoQuantStock 参数搜索报告选出。",
       "bottom": "抄底区拆成恐慌抄底和回撤抄底。高估会降低回撤抄底强度，但不会长期阻断明显回撤时的定投区。",
       "heat": "减仓区通常需要贪婪、历史估值偏贵、技术超买或趋势转弱。",
-      "forwardPE": "前瞻 PE 只是实时闸门，所以今天的前瞻 PE 不会改写历史评分。"
+      "forwardPE": "前瞻 PE 只是实时闸门，所以今天的前瞻 PE 不会改写历史评分。",
+      "auxiliaryGates": "QQQ PE、VIX、恐惧贪婪都是辅助规则。QQQ PE 只看当前值；VIX 和恐惧贪婪有历史数据时，可以增加原因标签并调整区间强度。"
     },
     "zone": {
       "dca_buy": "定投区",
@@ -447,13 +463,29 @@
       "overbought": "技术超买",
       "trend_weakening": "趋势转弱",
       "forward_pe_low": "前瞻 PE 偏低",
-      "forward_pe_high": "前瞻 PE 偏高"
+      "forward_pe_high": "前瞻 PE 偏高",
+      "qqq_pe_warning": "QQQ PE 警戒",
+      "vix_panic": "VIX 恐慌",
+      "vix_complacency": "VIX 低波动",
+      "fear_extreme": "极度恐惧",
+      "greed_extreme": "极度贪婪"
     },
     "forwardPeSignal": {
       "undervalued": "当前前瞻 PE 低于低估线。",
       "neutral": "当前前瞻 PE 处于中性区。",
       "overvalued": "当前前瞻 PE 高于高估线。",
       "unavailable": "当前前瞻 PE 不可用。"
+    },
+    "qqqPeSignal": {
+      "neutral": "当前 QQQ PE 低于警戒线。",
+      "warning": "当前 QQQ PE 高于警戒线，会降低买入强度、提高减仓可信度。",
+      "unavailable": "当前 QQQ PE 不可用，因此不启用这个闸门。"
+    },
+    "sentimentGate": {
+      "panic": "极端恐慌支持抄底区解释。",
+      "complacency": "低恐慌或高贪婪支持过热区解释。",
+      "neutral": "当前情绪闸门中性。",
+      "unavailable": "当前情绪数据不可用。"
     },
     "range": {
       "1y": "1年",

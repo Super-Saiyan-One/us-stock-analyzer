@@ -27,7 +27,7 @@
 
 A full-stack US stock market analysis tool: market valuation dashboard, individual stock analysis, options chain data, and macro indicators. Built for a single user (personal tool), deployed locally or via Docker.
 
-**Live pages**: Dashboard (market regime radar, valuation, Fed liquidity, rates, volatility, macro) · Screener (opportunity scanning with scoring) · Signal Lab (backtest signal performance) · BTC Strategy (BTC zone signals, DCA buy/sell degree, zone timeline, editable parameters, optional hard stop) · US Index Zones (SPY/QQQ panic-bottom and pullback-bottom DCA zones plus heat trim zones; defaults from AutoQuantStock parameter search) · Stock search + detail (quote, chart, key metrics, options, signals) · Watchlist
+**Live pages**: Dashboard (market regime radar, valuation, Fed liquidity, rates, volatility, macro) · Screener (opportunity scanning with scoring) · Signal Lab (backtest signal performance) · BTC Strategy (BTC zone signals, DCA buy/sell degree, zone timeline, editable parameters, optional hard stop) · US Index Zones (SPY/QQQ panic-bottom and pullback-bottom DCA zones plus heat trim zones; defaults from AutoQuantStock parameter search, with auxiliary QQQ PE/VIX/Fear gates) · Stock search + detail (quote, chart, key metrics, options, signals) · Watchlist
 
 ## Tech Stack
 
@@ -70,7 +70,7 @@ src/
 │   ├── (app)/                     # Layout group with nav
 │   │   ├── dashboard/page.tsx     # Market dashboard
 │   │   ├── btc-strategy/page.tsx  # BTC zone signal dashboard
-│   │   ├── us-index-strategy/page.tsx # SPY/QQQ bottom/heat zone dashboard
+│   │   ├── us-index-strategy/page.tsx # SPY/QQQ bottom/heat zone dashboard + auxiliary gates
 │   │   ├── screener/page.tsx      # Opportunity screener
 │   │   ├── signal-lab/page.tsx    # Signal backtest lab
 │   │   ├── stock/page.tsx         # Search
@@ -103,8 +103,8 @@ src/
 │   ├── db.ts                      # SQLite (time_series + cache_meta + signal_observations + price_snapshots)
 │   ├── btc-market-data.ts         # BTC daily candles + CBBI fetch/cache
 │   ├── btc-strategy-engine.ts     # BTC zone signal + reference trade evaluator
-│   ├── us-index-market-data.ts    # SPY/QQQ daily candles + VIX/Fear/valuation data
-│   ├── us-index-strategy-engine.ts # US index panic/pullback bottom + heat zone scorer, research-optimized defaults
+│   ├── us-index-market-data.ts    # SPY/QQQ daily candles + VIX/Fear/valuation data + current QQQ PE gate
+│   ├── us-index-strategy-engine.ts # US index panic/pullback bottom + heat zone scorer, research-optimized defaults + auxiliary gates
 │   ├── constants.ts               # ALL constants (URLs, CACHE_TTL, STALE_TIME)
 │   ├── data-source-registry.ts    # DataMeta builder for provenance tracking
 │   ├── feature-engine.ts          # Percentile-based feature computation
@@ -220,6 +220,7 @@ docker-compose up
 | Yahoo Finance Chart API | Price, volume, indices | None | Real-time |
 | Yahoo Finance Search API | Stock search | None | — |
 | Yahoo Finance Chart API (^VIX, ^VIX3M, ^SKEW) | US index zone fear/risk proxies | None | Daily |
+| Yahoo Finance quoteSummary (QQQ) | Current QQQ trailing PE auxiliary gate; current-only, not historical scoring | None (best effort) | 6h |
 | Binance Spot Klines API | BTCUSDT daily candles for BTC strategy | None | Daily |
 | Colin Talks Crypto CBBI | CBBI cycle confidence index | None | Daily |
 | FRED | Macro indicators (rates, VIX, CPI, M2...) | API Key | Daily/Weekly/Monthly |
@@ -261,7 +262,8 @@ CREATE TABLE btc_strategy_config (
 
 -- US index zone strategy configuration
 -- params JSON stores weights, panic/pullback bottom thresholds, heat threshold, indicator periods,
--- and forward PE gate thresholds. Exact legacy 60/60 and old research defaults are upgraded
+-- forward PE gate thresholds, and auxiliary gate thresholds (QQQ PE, VIX, Fear & Greed).
+-- Exact legacy 60/60 and old research defaults are upgraded
 -- to the latest AutoQuantStock research default at read time.
 CREATE TABLE us_index_strategy_config (
   id TEXT PRIMARY KEY,

@@ -24,9 +24,18 @@ export interface UsIndexForwardPEGate {
   value: number | null;
 }
 
+export interface UsIndexQQQPEGate {
+  date: string | null;
+  value: number | null;
+  source: string | null;
+  methodology: string | null;
+}
+
 export type UsIndexZoneAction = "dca_buy" | "hold" | "dca_sell";
 export type UsIndexZoneDegree = 0 | 25 | 50 | 75 | 100;
 export type UsIndexForwardPESignal = "undervalued" | "neutral" | "overvalued" | "unavailable";
+export type UsIndexQQQPESignal = "neutral" | "warning" | "unavailable";
+export type UsIndexSentimentGateSignal = "panic" | "complacency" | "neutral" | "unavailable";
 export type UsIndexReasonTag =
   | "panic"
   | "panic_bottom"
@@ -39,7 +48,12 @@ export type UsIndexReasonTag =
   | "overbought"
   | "trend_weakening"
   | "forward_pe_low"
-  | "forward_pe_high";
+  | "forward_pe_high"
+  | "qqq_pe_warning"
+  | "vix_panic"
+  | "vix_complacency"
+  | "fear_extreme"
+  | "greed_extreme";
 
 export interface UsIndexStrategyConfig {
   name: string;
@@ -58,7 +72,13 @@ export interface UsIndexStrategyConfig {
   emaSlowDays: number;
   forwardPeLow: number;
   forwardPeHigh: number;
+  qqqPeWarning: number;
+  vixPanicThreshold: number;
+  vixComplacencyThreshold: number;
+  fearExtremeThreshold: number;
+  greedExtremeThreshold: number;
   currentForwardPE?: UsIndexForwardPEGate;
+  currentQQQPE?: UsIndexQQQPEGate;
 }
 
 export interface UsIndexStrategyTemplate {
@@ -125,6 +145,20 @@ export interface UsIndexStrategyCurrentGate {
     value: number | null;
     signal: UsIndexForwardPESignal;
   } | null;
+  qqqPE: {
+    date: string | null;
+    value: number | null;
+    source: string | null;
+    methodology: string | null;
+    signal: UsIndexQQQPESignal;
+  } | null;
+  sentiment: {
+    date: string | null;
+    vix: number | null;
+    fearGreed: number | null;
+    vixSignal: UsIndexSentimentGateSignal;
+    fearGreedSignal: UsIndexSentimentGateSignal;
+  } | null;
 }
 
 export interface UsIndexStrategyEvaluation {
@@ -143,6 +177,7 @@ export interface UsIndexStrategyDataSource {
   priceAsOf: string | null;
   macroAsOf: string | null;
   forwardPEAsOf: string | null;
+  qqqPEAsOf: string | null;
   isFallback?: boolean;
 }
 
