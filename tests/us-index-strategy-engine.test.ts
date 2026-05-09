@@ -5,6 +5,7 @@ import {
   DEFAULT_US_INDEX_STRATEGY_CONFIG,
   evaluateUsIndexStrategy,
   normalizeUsIndexStrategyConfig,
+  resolveUsIndexStrategyConfig,
   resolveUsIndexZoneAction,
 } from "../src/lib/us-index-strategy-engine";
 import type {
@@ -75,6 +76,40 @@ function makeMacro(kind: "bottom" | "heat" | "flat"): UsIndexMacroPoint[] {
 }
 
 describe("evaluateUsIndexStrategy", () => {
+  it("uses the AutoQuantStock parameter search as the default config", () => {
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.name, "USIndexZoneResearchOpt");
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.fearWeight, 0.45);
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.valuationWeight, 0.15);
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.technicalWeight, 0.3);
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.repairWeight, 0.1);
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.bottomThreshold, 46);
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.heatThreshold, 56);
+    assert.equal(DEFAULT_US_INDEX_STRATEGY_CONFIG.conflictGap, 15);
+  });
+
+  it("upgrades the old 60/60 saved default to the researched default", () => {
+    const config = resolveUsIndexStrategyConfig({
+      name: "USIndexZoneBalanced",
+      fearWeight: 0.4,
+      valuationWeight: 0.15,
+      technicalWeight: 0.35,
+      repairWeight: 0.1,
+      bottomThreshold: 60,
+      heatThreshold: 60,
+      conflictGap: 15,
+      rsiPeriod: 14,
+      smaLongDays: 200,
+      emaFastDays: 20,
+      emaSlowDays: 50,
+      forwardPeLow: 18,
+      forwardPeHigh: 24,
+    });
+
+    assert.equal(config.name, "USIndexZoneResearchOpt");
+    assert.equal(config.bottomThreshold, 46);
+    assert.equal(config.heatThreshold, 56);
+  });
+
   it("normalizes user weights and clamps thresholds", () => {
     const config = normalizeUsIndexStrategyConfig({
       ...DEFAULT_US_INDEX_STRATEGY_CONFIG,

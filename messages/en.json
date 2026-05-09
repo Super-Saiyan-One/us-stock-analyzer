@@ -375,6 +375,7 @@
     "chartTitle": "Price & Zone Signals",
     "chartHint": "No hover pricing is shown so long ranges stay responsive.",
     "parameters": "Strategy Parameters",
+    "parameterResearchNote": "Defaults come from an AutoQuantStock joint SPY/QQQ parameter search covering returns, drawdown, zone counts, and 2018/2020/2022/2024-2026 phases.",
     "applyParameters": "Apply Parameters",
     "applying": "Applying",
     "applied": "Applied, zones updated",
@@ -418,7 +419,7 @@
       "emaSlowDays": "Slow EMA used with the fast EMA for trend context."
     },
     "strategyExplanation": {
-      "logic": "The model scores bottom risk and heat risk separately. It does not rotate between SPY and QQQ.",
+      "logic": "The model scores bottom risk and heat risk separately. It does not rotate between SPY and QQQ; defaults are selected by the AutoQuantStock parameter search report.",
       "bottom": "Bottom zones need panic, cheaper historical valuation, oversold price action, or trend repair.",
       "heat": "Heat zones need greed, expensive historical valuation, overbought price action, or trend weakening.",
       "forwardPE": "Forward PE is a realtime gate only, so today's forward PE never rewrites historical scores."

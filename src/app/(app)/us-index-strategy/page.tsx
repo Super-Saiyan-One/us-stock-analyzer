@@ -81,6 +81,11 @@ function formatScore(value: number) {
   return value.toFixed(1);
 }
 
+function formatParameterInput(key: ConfigFieldKey, value: number) {
+  if (key.includes("Weight")) return Number(value.toFixed(4)).toString();
+  return Number(value).toString();
+}
+
 function sliceByRange(points: UsIndexStrategyZonePoint[], range: RangeKey) {
   const config = RANGES.find((item) => item.key === range);
   if (!config?.days || points.length === 0) return points;
@@ -259,6 +264,7 @@ function ConfigForm({ data }: { data: UsIndexStrategyResponse }) {
         <SlidersHorizontal className="h-4 w-4 text-primary" />
         <h2 className="font-semibold">{tu("parameters")}</h2>
       </div>
+      <p className="mb-4 text-xs text-muted-foreground">{tu("parameterResearchNote")}</p>
       <div className="grid gap-3 sm:grid-cols-2">
         {CONFIG_FIELDS.map((key) => (
           <label key={key} className="space-y-1">
@@ -266,7 +272,7 @@ function ConfigForm({ data }: { data: UsIndexStrategyResponse }) {
             <input
               type="number"
               step={key.includes("Weight") ? "0.01" : "1"}
-              value={Number(form[key]).toString()}
+              value={formatParameterInput(key, Number(form[key]))}
               onChange={(event) => updateField(key, Number(event.target.value))}
               className="w-full rounded-md border bg-background px-3 py-2 text-sm tabular-nums"
             />

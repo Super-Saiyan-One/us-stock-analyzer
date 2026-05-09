@@ -14,6 +14,23 @@ import type {
 } from "@/types/us-index-strategy";
 
 export const DEFAULT_US_INDEX_STRATEGY_CONFIG: UsIndexStrategyConfig = {
+  name: "USIndexZoneResearchOpt",
+  fearWeight: 0.45,
+  valuationWeight: 0.15,
+  technicalWeight: 0.3,
+  repairWeight: 0.1,
+  bottomThreshold: 46,
+  heatThreshold: 56,
+  conflictGap: 15,
+  rsiPeriod: 14,
+  smaLongDays: 200,
+  emaFastDays: 20,
+  emaSlowDays: 50,
+  forwardPeLow: 18,
+  forwardPeHigh: 24,
+};
+
+const LEGACY_US_INDEX_BALANCED_DEFAULT: UsIndexStrategyConfig = {
   name: "USIndexZoneBalanced",
   fearWeight: 0.4,
   valuationWeight: 0.15,
@@ -32,9 +49,9 @@ export const DEFAULT_US_INDEX_STRATEGY_CONFIG: UsIndexStrategyConfig = {
 
 export const US_INDEX_STRATEGY_TEMPLATES: UsIndexStrategyTemplate[] = [
   {
-    id: "balanced_zone_v1",
-    name: "Balanced Zone v1",
-    description: "Bottom/heat zone score using technical, fear, and historical valuation data.",
+    id: "research_opt_v1",
+    name: "Research Optimized v1",
+    description: "SPY/QQQ joint parameter search from AutoQuantStock using technical, fear, and historical valuation data.",
     defaultConfig: DEFAULT_US_INDEX_STRATEGY_CONFIG,
   },
 ];
@@ -80,6 +97,15 @@ export function normalizeUsIndexStrategyConfig(
   };
 }
 
+export function resolveUsIndexStrategyConfig(
+  savedConfig: UsIndexStrategyConfig | null | undefined
+): UsIndexStrategyConfig {
+  if (!savedConfig) return DEFAULT_US_INDEX_STRATEGY_CONFIG;
+  const normalized = normalizeUsIndexStrategyConfig(savedConfig);
+  if (isLegacyDefaultConfig(normalized)) return DEFAULT_US_INDEX_STRATEGY_CONFIG;
+  return normalized;
+}
+
 export function evaluateUsIndexStrategy(
   candles: UsIndexDailyCandle[],
   macroPoints: UsIndexMacroPoint[],
@@ -108,6 +134,25 @@ export function evaluateUsIndexStrategy(
       forwardPE: buildForwardPEGate(normalized),
     },
   };
+}
+
+function isLegacyDefaultConfig(config: UsIndexStrategyConfig): boolean {
+  return (
+    config.name === LEGACY_US_INDEX_BALANCED_DEFAULT.name &&
+    numberEquals(config.fearWeight, LEGACY_US_INDEX_BALANCED_DEFAULT.fearWeight) &&
+    numberEquals(config.valuationWeight, LEGACY_US_INDEX_BALANCED_DEFAULT.valuationWeight) &&
+    numberEquals(config.technicalWeight, LEGACY_US_INDEX_BALANCED_DEFAULT.technicalWeight) &&
+    numberEquals(config.repairWeight, LEGACY_US_INDEX_BALANCED_DEFAULT.repairWeight) &&
+    numberEquals(config.bottomThreshold, LEGACY_US_INDEX_BALANCED_DEFAULT.bottomThreshold) &&
+    numberEquals(config.heatThreshold, LEGACY_US_INDEX_BALANCED_DEFAULT.heatThreshold) &&
+    numberEquals(config.conflictGap, LEGACY_US_INDEX_BALANCED_DEFAULT.conflictGap) &&
+    config.rsiPeriod === LEGACY_US_INDEX_BALANCED_DEFAULT.rsiPeriod &&
+    config.smaLongDays === LEGACY_US_INDEX_BALANCED_DEFAULT.smaLongDays &&
+    config.emaFastDays === LEGACY_US_INDEX_BALANCED_DEFAULT.emaFastDays &&
+    config.emaSlowDays === LEGACY_US_INDEX_BALANCED_DEFAULT.emaSlowDays &&
+    numberEquals(config.forwardPeLow, LEGACY_US_INDEX_BALANCED_DEFAULT.forwardPeLow) &&
+    numberEquals(config.forwardPeHigh, LEGACY_US_INDEX_BALANCED_DEFAULT.forwardPeHigh)
+  );
 }
 
 export function resolveUsIndexZoneAction(
@@ -491,6 +536,10 @@ function toDegree(score: number): UsIndexZoneDegree {
 
 function finiteOr(value: number | undefined, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function numberEquals(a: number, b: number): boolean {
+  return Math.abs(a - b) < 0.000001;
 }
 
 function clamp(value: number | undefined, min: number, max: number): number {

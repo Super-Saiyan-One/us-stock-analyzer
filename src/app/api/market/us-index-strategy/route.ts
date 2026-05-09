@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import {
-  DEFAULT_US_INDEX_STRATEGY_CONFIG,
   US_INDEX_STRATEGY_TEMPLATES,
   evaluateUsIndexStrategy,
+  resolveUsIndexStrategyConfig,
 } from "@/lib/us-index-strategy-engine";
 import {
   getCurrentForwardPE,
@@ -26,8 +26,9 @@ export async function GET(request: Request) {
     ]);
     const macro = await getUsIndexMacroPoints(candles);
     const savedConfig = getUsIndexStrategyConfig();
+    const resolvedConfig = resolveUsIndexStrategyConfig(savedConfig);
     const config = {
-      ...(savedConfig ?? DEFAULT_US_INDEX_STRATEGY_CONFIG),
+      ...resolvedConfig,
       currentForwardPE: forwardPE,
     };
     const evaluation = evaluateUsIndexStrategy(candles, macro, config);

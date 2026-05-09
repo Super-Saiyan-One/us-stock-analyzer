@@ -375,6 +375,7 @@
     "chartTitle": "价格与区间信号",
     "chartHint": "不显示悬浮价格，长周期图表会更流畅。",
     "parameters": "策略参数",
+    "parameterResearchNote": "默认参数来自 AutoQuantStock 对 SPY/QQQ 的联合参数搜索，覆盖收益、回撤、区间数量和 2018/2020/2022/2024-2026 阶段。",
     "applyParameters": "应用参数",
     "applying": "应用中",
     "applied": "已应用，区间已更新",
@@ -418,7 +419,7 @@
       "emaSlowDays": "和快线配合判断趋势环境的慢线 EMA。"
     },
     "strategyExplanation": {
-      "logic": "模型分别计算抄底风险和过热风险，不做 SPY/QQQ 轮动。",
+      "logic": "模型分别计算抄底风险和过热风险，不做 SPY/QQQ 轮动；默认参数由 AutoQuantStock 参数搜索报告选出。",
       "bottom": "抄底区通常需要恐慌、历史估值不贵、技术超跌或趋势修复。",
       "heat": "减仓区通常需要贪婪、历史估值偏贵、技术超买或趋势转弱。",
       "forwardPE": "前瞻 PE 只是实时闸门，所以今天的前瞻 PE 不会改写历史评分。"
