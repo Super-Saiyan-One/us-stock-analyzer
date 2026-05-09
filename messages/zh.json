@@ -5,6 +5,7 @@
     "stocks": "个股",
     "watchlist": "自选股",
     "signalLab": "信号验证",
+    "btcStrategy": "BTC 策略",
     "appName": "美股分析"
   },
   "common": {
@@ -195,6 +196,169 @@
       "low": "低",
       "medium": "中",
       "high": "高"
+    }
+  },
+  "btcStrategy": {
+    "title": "BTC 策略",
+    "source": "数据源：",
+    "latestPrice": "最新价格",
+    "cbbi": "CBBI",
+    "ahr999": "AHR999",
+    "currentZone": "当前区间",
+    "buyDegree": "定投程度",
+    "sellDegree": "定卖程度",
+    "totalReturn": "Web 日线参考收益",
+    "buyHoldReturn": "Buy & Hold 基准",
+    "excessReturn": "相对基准",
+    "chartTitle": "BTC 价格与区间信号",
+    "price": "价格",
+    "buy": "买入",
+    "sell": "卖出",
+    "zoneSignal": "区间信号",
+    "zoneTimeline": "区间时间带",
+    "zoneTimelineHint": "颜色越深，程度越高",
+    "status": "当前状态",
+    "action": "动作",
+    "tradesCount": "交易次数",
+    "winRate": "胜率",
+    "avgReturn": "平均收益",
+    "parameters": "策略参数",
+    "save": "保存",
+    "saving": "保存中",
+    "saved": "已保存",
+    "applyParameters": "应用参数",
+    "applying": "应用中",
+    "applied": "已应用，区间已更新",
+    "applyHint": "修改参数后点击应用参数，当前区间和图表会重新计算。",
+    "template": "模板",
+    "strategyName": "策略名称",
+    "momentumDays": "动量天数",
+    "exitMomentumDays": "退出动量天数",
+    "cbbiEntryMax": "入场 CBBI 上限",
+    "entryAhrMax": "定投 AHR999 上限",
+    "exitMomentumThreshold": "退出动量阈值",
+    "exitCbbi": "退出 CBBI",
+    "exitAhr": "退出 AHR999",
+    "stoploss": "止损 %",
+    "stoplossPct": "硬止损 %",
+    "hardStopEnabled": "启用硬止损",
+    "trendFastDays": "快线 EMA 天数",
+    "trendSlowDays": "慢线 EMA 天数",
+    "strategyExplanationTitle": "策略解释",
+    "noTemplateParameters": "这个模板没有需要手动调整的参数。",
+    "historicalReference": "历史参考",
+    "referenceReturnNote": "收益使用 Web 日线数据做参考计算，用来和 Buy & Hold 对比；它不是 AutoQuant/FreqTrade 的实验收益，也不是精确交易回测。",
+    "trades": "最近参考交易",
+    "entryDate": "入场",
+    "exitDate": "出场",
+    "entryPrice": "入场价",
+    "exitPrice": "出场价",
+    "return": "收益",
+    "reason": "原因",
+    "noTrades": "暂无完成交易",
+    "loadFailed": "BTC 策略数据加载失败。",
+    "positionLabel": "参考仓位",
+    "noZoneReason": "当前没有触发区间原因",
+    "explanationLabel": {
+      "logic": "逻辑：",
+      "entry": "入场：",
+      "exit": "出场：",
+      "bestFor": "适合：",
+      "note": "注意："
+    },
+    "parameterHelp": {
+      "momentumDays": "用多少个日线周期比较 CBBI/AHR999 是否在转强。",
+      "exitMomentumDays": "用多少个日线周期判断 CBBI 动量是否转弱。",
+      "cbbiEntryMax": "CBBI 低于这个值时，才允许进入定投区。",
+      "entryAhrMax": "AHR999 低于这个值时，才允许 CbbiAhr999Daily 进入定投区。",
+      "exitMomentumThreshold": "CBBI 动量低于这个值时，Momentum 策略进入定卖区。",
+      "exitCbbi": "CBBI 高于这个值时，认为周期偏热，进入定卖区。",
+      "exitAhr": "AHR999 高于这个值时，认为估值偏热，进入定卖区。",
+      "hardStopEnabled": "默认关闭，更适合现货区间观察；开启后才会影响参考交易收益，不影响区间颜色。",
+      "stoplossPct": "开启硬止损后，参考交易跌到该百分比会按止损出场，例如 -25 表示跌 25%。",
+      "trendFastDays": "趋势快线周期，只支持 50、100、200 这类已有 EMA 值最准确。",
+      "trendSlowDays": "趋势慢线周期，通常用于判断牛熊趋势是否被破坏。"
+    },
+    "strategyExplanation": {
+      "cbbi_momentum_opt": {
+        "logic": "不等极度恐惧本身，而是等 CBBI 从低位开始修复，并要求 EMA100 在 EMA200 之上。",
+        "entry": "CBBI 低于上限且 3 日动量转正，趋势快线高于慢线时进入定投区。",
+        "exit": "CBBI 动量明显转弱、CBBI 过热，或趋势快线跌破慢线时进入定卖区。",
+        "bestFor": "趋势修复阶段，尤其是底部走出来后的中大级别行情。",
+        "note": "AutoQuant 原策略含 1h 实验口径和止损；这里是 Web 日线现货区间版。"
+      },
+      "cbbi_momentum": {
+        "logic": "使用 CBBI 低位动量转强作为主要信号，比单纯看低估阈值更重视方向。",
+        "entry": "CBBI 低于上限且动量转正，同时趋势过滤通过。",
+        "exit": "CBBI 动量转弱、CBBI 过热，或趋势跌破时进入定卖区。",
+        "bestFor": "想用更少指标观察 BTC 周期动量的人。",
+        "note": "参数比 Opt 版本更原始，可能更容易错过快速反转。"
+      },
+      "cbbi_ahr999_daily": {
+        "logic": "把 CBBI 周期温度和 AHR999 估值结合，寻找低估后开始修复的日线区间。",
+        "entry": "CBBI 和 AHR999 都在低位，且二者动量同时转正时进入定投区。",
+        "exit": "CBBI 或 AHR999 超过退出阈值时进入定卖区。",
+        "bestFor": "偏左侧、希望同时参考周期温度和估值温度的现货策略。",
+        "note": "这是日线指标组合，不适合解释小时级别频繁交易。"
+      },
+      "smart_hold": {
+        "logic": "核心是牛市持有，只在长期趋势同时转弱时降低仓位。",
+        "entry": "有有效成交量且趋势未破坏时保持持有区或定投区。",
+        "exit": "快线跌破慢线且价格跌破 SMA200 时进入定卖区。",
+        "bestFor": "不想频繁换仓，更关心大级别趋势的人。",
+        "note": "它不是抄底策略，更多是大趋势仓位管理模板。"
+      },
+      "bear01": {
+        "logic": "使用 SMA200 作为牛熊分界，跌破长期均线时保护仓位。",
+        "entry": "价格在 SMA200 之上时允许持有。",
+        "exit": "价格跌破 SMA200 时进入定卖区。",
+        "bestFor": "只想要一个简单牛熊过滤器的人。",
+        "note": "AutoQuant 中的资金费率、稳定币等过滤器 Web 端暂未接入。"
+      },
+      "buy_and_hold": {
+        "logic": "买入后一直持有，作为所有策略收益的基准。",
+        "entry": "有有效成交量后进入持有。",
+        "exit": "默认没有策略出场。",
+        "bestFor": "用来判断策略是否真的优于长期持有。",
+        "note": "如果开启硬止损，它就不再是纯 Buy & Hold 基准。"
+      }
+    },
+    "zone": {
+      "dca_buy": "定投区",
+      "hold": "持有区",
+      "dca_sell": "定卖区"
+    },
+    "reasonTag": {
+      "cbbi_low": "CBBI 低估",
+      "ahr_low": "AHR999 低估",
+      "momentum_rising": "动量转强",
+      "trend_ok": "趋势通过",
+      "cbbi_hot": "CBBI 过热",
+      "ahr_hot": "AHR999 过热",
+      "momentum_faded": "动量转弱",
+      "trend_broken": "趋势跌破"
+    },
+    "position": {
+      "long": "持仓",
+      "cash": "空仓"
+    },
+    "actionState": {
+      "buy": "买入",
+      "sell": "卖出",
+      "hold": "观望"
+    },
+    "exitReason": {
+      "cbbi_overheated": "CBBI 过热",
+      "ahr_overheated": "AHR999 过热",
+      "momentum_faded": "动量转弱",
+      "trend_broken": "趋势跌破",
+      "stoploss": "止损"
+    },
+    "range": {
+      "1y": "1年",
+      "2y": "2年",
+      "4y": "4年",
+      "all": "全部"
     }
   },
   "tip": {

@@ -27,7 +27,7 @@
 
 A full-stack US stock market analysis tool: market valuation dashboard, individual stock analysis, options chain data, and macro indicators. Built for a single user (personal tool), deployed locally or via Docker.
 
-**Live pages**: Dashboard (market regime radar, valuation, Fed liquidity, rates, volatility, macro) · Screener (opportunity scanning with scoring) · Signal Lab (backtest signal performance) · Stock search + detail (quote, chart, key metrics, options, signals) · Watchlist
+**Live pages**: Dashboard (market regime radar, valuation, Fed liquidity, rates, volatility, macro) · Screener (opportunity scanning with scoring) · Signal Lab (backtest signal performance) · BTC Strategy (BTC zone signals, DCA buy/sell degree, zone timeline, editable parameters, optional hard stop) · Stock search + detail (quote, chart, key metrics, options, signals) · Watchlist
 
 ## Tech Stack
 
@@ -39,6 +39,7 @@ A full-stack US stock market analysis tool: market valuation dashboard, individu
 | Charts | Recharts (dashboard) + lightweight-charts (candlestick) | |
 | i18n | next-intl + custom `useT()` wrapper | en/zh, messages in `messages/*.json` |
 | Icons | lucide-react | |
+| Tests | node:test + tsx | Focused TypeScript tests for pure engines |
 | Backend | FastAPI + uvicorn (Python) | yfinance for fundamentals + options |
 | Persistence | SQLite (better-sqlite3) | `data/cache.db`, time series + cache |
 | External APIs | Yahoo Finance, FRED, Shiller CAPE, CNN Fear&Greed, SEC EDGAR, FINRA, stockmarketperatio.com | |
@@ -68,6 +69,7 @@ src/
 ├── app/
 │   ├── (app)/                     # Layout group with nav
 │   │   ├── dashboard/page.tsx     # Market dashboard
+│   │   ├── btc-strategy/page.tsx  # BTC zone signal dashboard
 │   │   ├── screener/page.tsx      # Opportunity screener
 │   │   ├── signal-lab/page.tsx    # Signal backtest lab
 │   │   ├── stock/page.tsx         # Search
@@ -76,6 +78,7 @@ src/
 │   │   └── watchlist/page.tsx     # Watchlist
 │   ├── api/                       # BFF layer
 │   │   ├── fred/                  # FRED macro (SQLite-backed)
+│   │   ├── crypto/btc/strategy/   # BTC strategy evaluation + config persistence
 │   │   ├── market/{indices,regime,shiller,sp500,fear-greed,forward-pe,sector-pe}/
 │   │   ├── screener/             # Batch stock screening
 │   │   ├── signals/{backtest,observations}/ # Signal verification
@@ -97,6 +100,8 @@ src/
 │   ├── api.ts                     # apiFetch, validateSymbol
 │   ├── cache.ts                   # In-memory TTL cache (Map-based)
 │   ├── db.ts                      # SQLite (time_series + cache_meta + signal_observations + price_snapshots)
+│   ├── btc-market-data.ts         # BTC daily candles + CBBI fetch/cache
+│   ├── btc-strategy-engine.ts     # BTC zone signal + reference trade evaluator
 │   ├── constants.ts               # ALL constants (URLs, CACHE_TTL, STALE_TIME)
 │   ├── data-source-registry.ts    # DataMeta builder for provenance tracking
 │   ├── feature-engine.ts          # Percentile-based feature computation
@@ -109,6 +114,7 @@ src/
 ├── stores/                        # Zustand (settings, watchlist)
 └── types/                         # TypeScript interfaces
     ├── data-meta.ts               # DataMeta, RegimeDimension types
+    ├── btc-strategy.ts            # BTC strategy config/evaluation types, optional hard stop
     ├── market.ts                  # ShillerLatest, IndexData, ForwardPEData, etc.
     ├── options.ts                 # OptionContract, OptionsChain
     ├── screener.ts                # ScreenerStock, BacktestResult, SignalObservation
@@ -170,6 +176,7 @@ Config: `.env.local` (git-ignored). Reference: `.env.example`
 npm run dev              # Next.js dev (port 3000)
 npm run build            # Production build
 npm run lint             # ESLint
+npm run test:btc         # BTC strategy engine focused test
 npx tsc --noEmit         # Type check
 
 # Python API
@@ -204,6 +211,8 @@ docker-compose up
 |--------|------|------|---------|
 | Yahoo Finance Chart API | Price, volume, indices | None | Real-time |
 | Yahoo Finance Search API | Stock search | None | — |
+| Binance Spot Klines API | BTCUSDT daily candles for BTC strategy | None | Daily |
+| Colin Talks Crypto CBBI | CBBI cycle confidence index | None | Daily |
 | FRED | Macro indicators (rates, VIX, CPI, M2...) | API Key | Daily/Weekly/Monthly |
 | Shiller/CAPE | Historical PE data | None | Daily |
 | CNN Fear & Greed | Market sentiment score | None | 30min |
@@ -230,6 +239,15 @@ CREATE TABLE cache_meta (
   key TEXT PRIMARY KEY,
   data TEXT NOT NULL,
   expires_at INTEGER NOT NULL
+);
+
+-- BTC strategy configuration
+-- params JSON stores template parameters, including hardStopEnabled (default false)
+CREATE TABLE btc_strategy_config (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  params TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 ```
 
